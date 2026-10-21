@@ -1,0 +1,25 @@
+/*=====================================================================
+  <title-bar>: one row; a dot that is green while the live stream is
+  connected.
+=====================================================================*/
+
+.title-bar
+{
+	flex-shrink: 0;
+}
+
+.title-bar .status-dot
+{
+	display: inline-block;
+	width: 0.6em;
+	height: 0.6em;
+	border-radius: 50%;
+	background-color: var( --bs-secondary );
+	margin-right: 0.35em;
+	vertical-align: middle;
+}
+
+.title-bar .status-dot.is-on
+{
+	background-color: var( --bs-success );
+}

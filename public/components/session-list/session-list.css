@@ -1,0 +1,56 @@
+/*=====================================================================
+  <session-list>: a scrolling column of session rows; the live ones
+  carry a pulsing dot.
+=====================================================================*/
+
+.session-list
+{
+	width: 18rem;
+	flex-shrink: 0;
+	overflow-y: auto;
+}
+
+@media ( max-width: 768px )
+{
+	.session-list
+	{
+		width: auto;
+		max-height: 40vh;
+		border-right: 0 !important;
+		border-bottom: 1px solid var( --bs-border-color );
+	}
+}
+
+.session-list .session-row
+{
+	color: inherit;
+	text-decoration: none;
+	border-left: 3px solid transparent;
+}
+
+.session-list .session-row:hover
+{
+	background-color: var( --bs-tertiary-bg );
+}
+
+.session-list .session-row.is-selected
+{
+	background-color: var( --bs-tertiary-bg );
+	border-left-color: var( --bs-primary );
+}
+
+.session-list .live-dot
+{
+	display: inline-block;
+	width: 0.55em;
+	height: 0.55em;
+	border-radius: 50%;
+	background-color: var( --bs-success );
+	animation: claudit-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes claudit-pulse
+{
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.3; }
+}

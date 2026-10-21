@@ -1,0 +1,94 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+
+import { Summarise, OutcomeOf, FormatClock, FormatDuration, FormatStatus, FormatBlock, SUMMARY_LENGTH } from './format.js';
+
+
+//---------------------------------------------------------------------
+test( 'Summarise: a shell call is its description, else its command', function ()
+{
+	assert.equal( Summarise( { tool: 'Bash', command: 'ls -la', description: 'List files' } ), 'List files' );
+	assert.equal( Summarise( { tool: 'Bash', command: 'ls -la\necho done' } ), 'ls -la' );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'Summarise: file tools give the path, search tools the pattern', function ()
+{
+	assert.equal( Summarise( { tool: 'Read', file_path: 'W:/x/y.js' } ), 'W:/x/y.js' );
+	assert.equal( Summarise( { tool: 'Edit', file_path: 'a.md' } ), 'a.md' );
+	assert.equal( Summarise( { tool: 'Grep', pattern: 'TODO' } ), 'TODO' );
+	assert.equal( Summarise( { tool: 'Glob', pattern: '**/*.js' } ), '**/*.js' );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'Summarise: an unknown tool or an empty input is the tool name', function ()
+{
+	assert.equal( Summarise( { tool: 'mcp__thing__do' } ), 'mcp__thing__do' );
+	assert.equal( Summarise( { tool: 'Bash', command: '   ' } ), 'Bash' );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'Summarise: a long line is cut to SUMMARY_LENGTH', function ()
+{
+	const long = 'x'.repeat( 500 );
+	const summary = Summarise( { tool: 'Bash', description: long } );
+	assert.equal( summary.length, SUMMARY_LENGTH );
+	assert.ok( summary.endsWith( '…' ) );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'OutcomeOf: denied, failed, done', function ()
+{
+	assert.equal( OutcomeOf( { deny: 'no' } ), 'denied' );
+	assert.equal( OutcomeOf( { result: {}, isError: true } ), 'failed' );
+	assert.equal( OutcomeOf( { result: {} } ), 'done' );
+	assert.equal( OutcomeOf( null ), 'failed' );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'FormatClock and FormatDuration read as people do', function ()
+{
+	const noon = new Date( 2026, 9, 21, 12, 5, 9 ).getTime();
+	assert.equal( FormatClock( noon ), '12:05:09' );
+	assert.equal( FormatDuration( 850 ), '850ms' );
+	assert.equal( FormatDuration( 1234 ), '1.2s' );
+	assert.equal( FormatDuration( 65000 ), '1m05s' );
+	assert.equal( FormatDuration( null ), '' );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'FormatStatus names the call in flight and the count', function ()
+{
+	const calls = [
+		{ tool: 'Read', summary: 'a.js', start: 0, outcome: 'done' },
+		{ tool: 'Bash', summary: 'Run tests', start: 1000, outcome: 'running' },
+	];
+	const line = FormatStatus( calls, 3100 );
+	assert.equal( line, 'claudit: Bash 2.1s  Run tests  (2 calls this turn)' );
+	assert.equal( FormatStatus( [ calls[ 0 ] ], 5000 ), 'claudit: 1 call this turn' );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'FormatBlock: a header and one line per call; empty with no calls', function ()
+{
+	assert.equal( FormatBlock( [], 'abc' ), '' );
+	const start = new Date( 2026, 9, 21, 9, 30, 0 ).getTime();
+	const calls = [
+		{ tool: 'Bash', summary: 'List files', start: start, duration: 1200, outcome: 'done', agent: null },
+		{ tool: 'Edit', summary: 'a.md', start: start + 2000, duration: 300, outcome: 'denied', agent: 'agent-12345678' },
+	];
+	const block = FormatBlock( calls, 'session-abcdefgh-rest' );
+	const lines = block.split( '\n' );
+	assert.equal( lines.length, 3 );
+	assert.equal( lines[ 0 ], 'claudit · session session- · 2 tool calls' );
+	assert.ok( lines[ 1 ].startsWith( '09:30:00     1.2s  Bash        List files' ) );
+	assert.ok( lines[ 2 ].includes( '[denied]' ) );
+	assert.ok( lines[ 2 ].includes( '(agent agent-12)' ) );
+} );

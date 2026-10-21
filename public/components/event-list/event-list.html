@@ -1,0 +1,44 @@
+<section class="event-list d-flex flex-column flex-grow-1">
+	<div class="event-head px-3 py-2 border-bottom d-flex align-items-center" ng-if="$ctrl.session">
+		<span class="mono">{{ $ctrl.session.id }}</span>
+		<span class="badge ms-2" ng-class="$ctrl.session.live ? 'text-bg-success' : 'text-bg-secondary'">{{ $ctrl.session.live ? 'live' : 'archived' }}</span>
+		<span class="ms-3 small dim text-truncate" title="{{ $ctrl.session.cwd }}">{{ $ctrl.session.cwd }}</span>
+		<span class="ms-auto small dim">{{ $ctrl.session.started | day }} {{ $ctrl.session.started | clock }} · {{ $ctrl.Calls() }} calls</span>
+	</div>
+	<div class="event-head px-3 py-2 border-bottom small dim" ng-if="!$ctrl.session">Pick a session.</div>
+
+	<div class="event-scroll flex-grow-1">
+		<table class="table table-sm table-hover mb-0 event-table">
+			<thead>
+				<tr>
+					<th class="col-time">Time</th>
+					<th class="col-duration text-end">Took</th>
+					<th class="col-tool">Tool</th>
+					<th>Summary</th>
+					<th class="col-outcome">Outcome</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="event in $ctrl.events track by ( event.id || $index )" ng-class="$ctrl.RowClass( event )">
+					<td class="mono col-time">{{ ( event.start || event.time ) | clock }}</td>
+					<td class="mono col-duration text-end">{{ event.duration | duration }}</td>
+					<td class="col-tool">
+						<span ng-if="event.kind === 'call'" class="badge text-bg-light border">{{ event.tool }}</span>
+						<span ng-if="event.kind === 'session'" class="small dim">session</span>
+					</td>
+					<td class="col-summary">
+						<span ng-if="event.kind === 'call'">{{ event.summary }}</span>
+						<span ng-if="event.kind === 'session'" class="dim">{{ event.phase === 'start' ? 'started' : 'ended' }}<span ng-if="event.reason"> ({{ event.reason }})</span></span>
+						<span ng-if="event.agent" class="small dim ms-2">agent {{ event.agent | shortId }}</span>
+					</td>
+					<td class="col-outcome">
+						<span ng-if="event.kind === 'call'" class="outcome outcome-{{ event.outcome }}">{{ event.outcome }}</span>
+					</td>
+				</tr>
+				<tr ng-if="$ctrl.session && $ctrl.events.length === 0">
+					<td colspan="5" class="small dim px-3 py-3">No events yet.</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</section>

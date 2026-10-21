@@ -1,0 +1,46 @@
+{
+	"Id": "prj-5a7-6eq-m4c",
+	"Name": "Claudit",
+	"Context": "doc-jgw-q6u-5lv",
+	"ContextFolder": "fld-run-d7s-bac",
+	"Created": "2026-10-21T10:03:16.597Z",
+	"Updated": "2026-10-21T10:54:01.425Z",
+	"Version": 3,
+	"Items": [
+		{
+			"Kind": "folder",
+			"Id": "fld-run-d7s-bac",
+			"Name": "Context",
+			"Items": [
+				{
+					"Kind": "document",
+					"Id": "doc-jgw-q6u-5lv"
+				}
+			]
+		},
+		{
+			"Kind": "plan",
+			"Id": "pln-u57-zho-rpf"
+		}
+	],
+	"Archive": [],
+	"States": [
+		"Draft",
+		"Plan",
+		"Working",
+		"Finished"
+	],
+	"Include": [],
+	"Exclude": [
+		"~*/**",
+		"node_modules/**",
+		".git/**"
+	],
+	"Commands": [],
+	"Roles": {
+		"Owners": [],
+		"Members": [],
+		"Service": [],
+		"Watchers": []
+	}
+}

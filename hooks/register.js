@@ -1,0 +1,539 @@
+//=====================================================================
+// Claudit: the mod.
+//
+// Runs inside Claude Code's plugin engine. It sees every tool call
+// (tool.call), keeps the turn's list, shows the call in flight on the
+// status line, puts the turn's list beneath the answer (turn.complete),
+// answers /claudit on | off | status (command.run), and posts each
+// event to the Claudit server over HTTP. It cannot listen on a port:
+// the server is a separate process (server/server.js) that the mod
+// starts, through server/launch.js, when its health route does not
+// answer.
+//
+// Reads: ~/.claudit/config.json (port, feedback), the plugin option
+// "port" (overrides the file when above 0), the engine store key
+// "enabled" (the /claudit switch, kept across sessions).
+//=====================================================================
+
+import { Summarise, OutcomeOf, FormatStatus, FormatBlock } from './format.js';
+
+
+const DEFAULT_PORT = 3600;
+const HEALTH_TRIES = 20;
+const HEALTH_WAIT_MS = 250;
+const TICK_MS = 1000;
+const STORE_ENABLED = 'enabled';
+
+
+// The session's state. A reload of the module starts it over; the
+// /claudit switch is the one value kept, in the engine's store.
+const STATE = {
+	enabled: true,
+	feedback: true,
+	port: DEFAULT_PORT,
+	server: 'http://127.0.0.1:' + DEFAULT_PORT,
+	server_ok: false,
+	session: '',
+	cwd: '',
+	calls: [],
+	counter: 0,
+	total: 0,
+	ticker: null,
+};
+
+
+//=====================================================================
+// Registration
+//=====================================================================
+
+export function register( on, options )
+{
+
+	//-----------------------------------------------------------------
+	on( 'session.start', async function ( $, e, next )
+	{
+		const started = await next( e );
+		try
+		{
+			await start_session( $, e, options );
+		}
+		catch ( error )
+		{
+			debug( $, 'session.start failed: ' + message_of( error ) );
+		}
+		return started;
+	} );
+
+
+	//-----------------------------------------------------------------
+	on( 'session.end', async function ( $, e, next )
+	{
+		if ( STATE.enabled && STATE.server_ok )
+		{
+			await post_event( $, {
+				kind: 'session',
+				phase: 'end',
+				session: STATE.session,
+				cwd: STATE.cwd,
+				time: await $.clock.now(),
+				reason: e.reason,
+			} );
+		}
+		return next( e );
+	} );
+
+
+	//-----------------------------------------------------------------
+	on( 'tool.call', async function ( $, e, next )
+	{
+		if ( !STATE.enabled )
+		{
+			return next( e );
+		}
+		let call = null;
+		try
+		{
+			call = await begin_call( $, e );
+		}
+		catch ( error )
+		{
+			debug( $, 'begin_call failed: ' + message_of( error ) );
+		}
+		let ran = null;
+		try
+		{
+			ran = await next( e );
+		}
+		catch ( error )
+		{
+			await finish_call( $, call, null );
+			throw error;
+		}
+		await finish_call( $, call, ran );
+		return ran;
+	} );
+
+
+	//-----------------------------------------------------------------
+	on( 'turn.complete', async function ( $, e, next )
+	{
+		const answer = await next( e );
+		if ( e.agentId !== undefined )
+		{
+			return answer;
+		}
+		const calls = STATE.calls;
+		STATE.calls = [];
+		stop_ticker( $ );
+		$.ui.status( undefined );
+		if ( !STATE.enabled || !STATE.feedback || calls.length === 0 )
+		{
+			return answer;
+		}
+		const block = FormatBlock( calls, STATE.session );
+		return { text: block, usage: answer.usage };
+	} );
+
+
+	//-----------------------------------------------------------------
+	on( 'command.run', { command: 'claudit' }, async function ( $, e )
+	{
+		const word = String( e.args || '' ).trim().toLowerCase();
+		if ( word === 'on' )
+		{
+			STATE.enabled = true;
+			await $.store.set( STORE_ENABLED, true );
+			if ( !STATE.server_ok )
+			{
+				STATE.server_ok = await ensure_server( $ );
+			}
+			return { text: 'claudit is on. ' + server_line() };
+		}
+		if ( word === 'off' )
+		{
+			STATE.enabled = false;
+			await $.store.set( STORE_ENABLED, false );
+			stop_ticker( $ );
+			$.ui.status( undefined );
+			return { text: 'claudit is off. Nothing is recorded until /claudit on.' };
+		}
+		if ( word === '' || word === 'status' )
+		{
+			STATE.server_ok = await health( $ );
+			return { text: status_text() };
+		}
+		return { text: 'claudit: "' + word + '" is not a word I know. Use /claudit on, /claudit off or /claudit status.' };
+	} );
+
+}
+
+
+//=====================================================================
+// The session
+//=====================================================================
+
+async function start_session( $, e, options )
+{
+	STATE.cwd = e.cwd;
+	STATE.session = await $.session.id();
+	STATE.calls = [];
+	STATE.counter = 0;
+	STATE.total = 0;
+
+	await $.command.register( {
+		name: 'claudit',
+		description: 'Claudit audit trail: on, off or status',
+		argumentHint: 'on | off | status',
+	} );
+
+	const stored = await $.store.get( STORE_ENABLED );
+	if ( stored === undefined )
+	{
+		STATE.enabled = true;
+	}
+	else
+	{
+		STATE.enabled = ( stored === true );
+	}
+
+	await load_config( $, options );
+
+	if ( !STATE.enabled )
+	{
+		return;
+	}
+	STATE.server_ok = await ensure_server( $ );
+	if ( STATE.server_ok )
+	{
+		await post_event( $, {
+			kind: 'session',
+			phase: 'start',
+			session: STATE.session,
+			cwd: STATE.cwd,
+			time: await $.clock.now(),
+		} );
+	}
+}
+
+
+//---------------------------------------------------------------------
+// ~/.claudit/config.json gives the port and the feedback switch; the
+// plugin option "port" overrides the file when it is above 0.
+//---------------------------------------------------------------------
+
+async function load_config( $, options )
+{
+	let config = {};
+	const home = await home_of( $ );
+	if ( home )
+	{
+		try
+		{
+			const text = await $.fs.read( home + '/.claudit/config.json' );
+			config = JSON.parse( text );
+		}
+		catch ( error )
+		{
+			config = {};
+		}
+	}
+	let port = Number( config.port ) || DEFAULT_PORT;
+	const option_port = Number( options && options.port );
+	if ( option_port > 0 )
+	{
+		port = option_port;
+	}
+	STATE.port = port;
+	STATE.server = 'http://127.0.0.1:' + port;
+	STATE.feedback = ( config.feedback !== false );
+}
+
+
+//---------------------------------------------------------------------
+
+async function home_of( $ )
+{
+	let home = await $.env.get( 'HOME' );
+	if ( !home )
+	{
+		home = await $.env.get( 'USERPROFILE' );
+	}
+	if ( !home )
+	{
+		return '';
+	}
+	return String( home ).replace( /\\/g, '/' );
+}
+
+
+//=====================================================================
+// The server
+//=====================================================================
+
+//---------------------------------------------------------------------
+// True when the server answers its health route; when it does not,
+// starts it detached (server/launch.js) and waits for it to answer.
+//---------------------------------------------------------------------
+
+async function ensure_server( $ )
+{
+	if ( await health( $ ) )
+	{
+		return true;
+	}
+	try
+	{
+		const launcher = $.plugin.root.replace( /\\/g, '/' ) + '/server/launch.js';
+		const ran = await $.process.run( [ 'node', launcher, '--port', String( STATE.port ) ] );
+		if ( ran.exitCode !== 0 )
+		{
+			debug( $, 'launch.js exited ' + ran.exitCode + ': ' + ran.stderr );
+			return false;
+		}
+	}
+	catch ( error )
+	{
+		debug( $, 'could not start the server: ' + message_of( error ) );
+		return false;
+	}
+	for ( let attempt = 0; attempt < HEALTH_TRIES; attempt++ )
+	{
+		await sleep( HEALTH_WAIT_MS );
+		if ( await health( $ ) )
+		{
+			return true;
+		}
+	}
+	debug( $, 'the server did not answer at ' + STATE.server );
+	return false;
+}
+
+
+//---------------------------------------------------------------------
+
+async function health( $ )
+{
+	try
+	{
+		const response = await $.http.fetch( STATE.server + '/api/health' );
+		return response.ok === true;
+	}
+	catch ( error )
+	{
+		return false;
+	}
+}
+
+
+//---------------------------------------------------------------------
+
+async function post_event( $, Event )
+{
+	if ( !STATE.server_ok )
+	{
+		return;
+	}
+	try
+	{
+		const response = await $.http.fetch( STATE.server + '/api/events', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify( Event ),
+		} );
+		if ( !response.ok )
+		{
+			debug( $, 'the server refused an event: ' + response.status );
+		}
+	}
+	catch ( error )
+	{
+		STATE.server_ok = false;
+		debug( $, 'posting an event failed: ' + message_of( error ) );
+	}
+}
+
+
+//=====================================================================
+// The calls
+//=====================================================================
+
+async function begin_call( $, e )
+{
+	const now = await $.clock.now();
+	STATE.counter = STATE.counter + 1;
+	let id = e.tool_use_id;
+	if ( !id )
+	{
+		id = STATE.session + '-' + STATE.counter;
+	}
+	const call = {
+		kind: 'call',
+		id: id,
+		session: STATE.session,
+		agent: e.agentId || null,
+		tool: e.tool,
+		summary: Summarise( e ),
+		start: now,
+		end: null,
+		duration: null,
+		outcome: 'running',
+		cwd: STATE.cwd,
+	};
+	STATE.calls.push( call );
+	show_status( $, now );
+	start_ticker( $ );
+	void post_event( $, call );
+	return call;
+}
+
+
+//---------------------------------------------------------------------
+
+async function finish_call( $, Call, Ran )
+{
+	if ( !Call )
+	{
+		return;
+	}
+	try
+	{
+		const now = await $.clock.now();
+		Call.end = now;
+		Call.duration = now - Call.start;
+		Call.outcome = OutcomeOf( Ran );
+		STATE.total = STATE.total + 1;
+		show_status( $, now );
+		if ( !any_running() )
+		{
+			stop_ticker( $ );
+		}
+		void post_event( $, Call );
+	}
+	catch ( error )
+	{
+		debug( $, 'finish_call failed: ' + message_of( error ) );
+	}
+}
+
+
+//---------------------------------------------------------------------
+
+function any_running()
+{
+	for ( const call of STATE.calls )
+	{
+		if ( call.outcome === 'running' )
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
+//=====================================================================
+// The status line
+//=====================================================================
+
+function show_status( $, Now )
+{
+	$.ui.status( FormatStatus( STATE.calls, Now ) );
+}
+
+
+//---------------------------------------------------------------------
+
+function start_ticker( $ )
+{
+	if ( STATE.ticker !== null )
+	{
+		return;
+	}
+	STATE.ticker = setInterval( function ()
+	{
+		if ( !any_running() )
+		{
+			stop_ticker( $ );
+			return;
+		}
+		show_status( $, Date.now() );
+	}, TICK_MS );
+}
+
+
+//---------------------------------------------------------------------
+
+function stop_ticker( $ )
+{
+	if ( STATE.ticker === null )
+	{
+		return;
+	}
+	clearInterval( STATE.ticker );
+	STATE.ticker = null;
+}
+
+
+//=====================================================================
+// Words
+//=====================================================================
+
+function server_line()
+{
+	if ( STATE.server_ok )
+	{
+		return 'Server: ' + STATE.server + ' (answering).';
+	}
+	return 'Server: ' + STATE.server + ' (not answering; events are not recorded until it does).';
+}
+
+
+//---------------------------------------------------------------------
+
+function status_text()
+{
+	const lines = [];
+	lines.push( 'claudit is ' + ( STATE.enabled ? 'on' : 'off' ) + '.' );
+	lines.push( server_line() );
+	lines.push( 'Session ' + STATE.session + ': ' + STATE.total + ' tool calls recorded, ' + STATE.calls.length + ' this turn.' );
+	lines.push( 'Turn-end feedback: ' + ( STATE.feedback ? 'on' : 'off' ) + ' (feedback in ~/.claudit/config.json).' );
+	return lines.join( '\n' );
+}
+
+
+//---------------------------------------------------------------------
+
+function debug( $, Text )
+{
+	try
+	{
+		$.ui.log( 'claudit: ' + Text, { to: 'debug' } );
+	}
+	catch ( error )
+	{
+		// Nothing to do: the log is the last resort.
+	}
+}
+
+
+//---------------------------------------------------------------------
+
+function message_of( Error )
+{
+	if ( Error && Error.message )
+	{
+		return Error.message;
+	}
+	return String( Error );
+}
+
+
+//---------------------------------------------------------------------
+
+function sleep( Ms )
+{
+	return new Promise( function ( Resolve )
+	{
+		setTimeout( Resolve, Ms );
+	} );
+}

@@ -1,0 +1,22 @@
+/*=====================================================================
+  <claudit-app>: the page fills the window; the body row holds the
+  session list and the event list side by side.
+=====================================================================*/
+
+.claudit-app
+{
+	height: 100vh;
+}
+
+.claudit-body
+{
+	min-height: 0;
+}
+
+@media ( max-width: 768px )
+{
+	.claudit-body
+	{
+		flex-direction: column;
+	}
+}

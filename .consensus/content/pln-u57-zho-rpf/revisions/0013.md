@@ -1,0 +1,42 @@
+# Claudit Design I
+
+A Claude Code plugin to expose the audit trail of a Claude Code session.
+
+The plugin is controlled within the session with `/claudit on`, `/claudit off` and `/claudit status`. It is on by default. The setting persists across sessions in the engine's cross-session store, so off stays off until the next on. `/claudit status` says whether it is on, the server's address and whether it answers, and the count of calls recorded this session.
+
+Git: https://github.com/mchiver/claudit. The repo exists on GitHub; the working folder is initialised as the repo's root with that URL as the origin remote, and a .gitignore for node_modules and tilde-prefixed files. Git stays the owner's: the agent commits only when a build log is accepted, and never branches or pushes.
+
+## Server
+
+The plugin has two parts. The mod runs in Claude Code's plugin engine, in a sandbox with no Node and no sockets to listen on; it sees the tool calls and publishes each as an event over HTTP. The server is a separate Node + Express process that receives the events, streams them, archives them and serves the web UI.
+
+The server ships in the plugin folder. On session.start the mod checks the server's health route; when nothing answers it starts the server through the engine's process runner, and the server keeps running after the session ends so the web page stays up. The server binds to 127.0.0.1 on port 3600 by default; the port is set in ~/.claudit/config.json, and the plugin's userConfig can override it.
+
+**Session Hooks**
+A hook on tool.call sees each call before it runs and after it finishes. Each call becomes one event carrying the session id, the agent id (a subagent's calls carry their own), the tool name, a one-line summary, the start time, the end time, the duration and the outcome (done, denied or failed). The summary is the shell call's description where there is one; a file tool's path; a search tool's pattern; otherwise the tool name alone. The full input and the tool's output are not carried; optional detail is added as a setting when it is needed. The mod records "hh:mm:ss description", marks the one in flight, and marks it done with its duration. Inside the session the live view is a status line entry only: the call in flight with its tool, elapsed time and summary, and the count so far this turn, cleared when the turn ends. A pane is left to a later plan.
+
+**Session Feedback**
+When the turn ends, the mod returns a text block that Claude Code shows under the final response, so the timestamped list lands in the conversation and stays there. The block has a header line naming the session and the count, then one line per call: "hh:mm:ss  1.2s  Bash  description". A turn with no tool calls adds nothing. The block is part of `/claudit on`; the config setting feedback (true by default) silences it without losing the stream and the archive.
+
+**Session Archive**
+The server owns the archive; the mod only posts. Each session is one JSON Lines file, appended as events arrive, at ~/.claudit/archive/<yyyy-mm-dd>/<session id>.jsonl, with a <session id>.json beside it holding the session's start, end, working directory and counts for the list view. The archive folder is a setting in ~/.claudit/config.json.
+Retention is by age: the config setting retention_days, default 30, pruned by the server at start and once a day; 0 keeps everything. A size cap can come later.
+
+**API**
+The server's web API, bound to 127.0.0.1 with no auth:
+
+- POST /api/events: the mod posts one event or a batch.
+- GET /api/live: the live stream as Server-Sent Events, every event of every session as it arrives, with an optional ?session= filter.
+- GET /api/sessions: the sessions in the archive, newest first, with their summaries.
+- GET /api/sessions/<id>: one session's events.
+- GET /api/health: the mod's start-up check.
+
+Streaming is Server-Sent Events, not WebSockets: plain HTTP, no dependency, and the browser's EventSource reconnects by itself.
+
+## Clients
+
+### Web UI
+
+A web page that shows a live update of session activity and lets archived sessions be viewed. It is built as AngularJS + Bootstrap components under public/components, with light/dark theming and small/normal/large scaling. The components: a session-list down the left (live sessions on top, archived below, from /api/sessions); an event-list on the right showing the selected session's events, the in-flight one highlighted, new ones arriving over the live stream; a title bar with the theme and scale controls. Picking a live session follows it; picking an archived one reads it from the archive. The page is shaped further as it is used.
+
+

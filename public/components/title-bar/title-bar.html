@@ -1,0 +1,17 @@
+<nav class="title-bar navbar px-3 py-1 border-bottom">
+	<span class="navbar-brand mb-0 h1">Claudit</span>
+	<span class="title-status small me-auto ms-3">
+		<span class="status-dot" ng-class="{ 'is-on': $ctrl.state.connected }"></span>
+		<span ng-if="$ctrl.state.connected">live</span>
+		<span ng-if="!$ctrl.state.connected">not connected</span>
+		<span ng-if="$ctrl.state.health" class="dim ms-2">{{ $ctrl.state.health.sessions }} sessions · port {{ $ctrl.state.health.port }}</span>
+	</span>
+	<div class="btn-group btn-group-sm me-2" role="group" aria-label="Scale">
+		<button type="button" class="btn btn-outline-secondary" ng-repeat="scale in $ctrl.scales"
+			ng-class="{ active: $ctrl.state.scale === scale }" ng-click="$ctrl.SetScale( scale )">{{ scale }}</button>
+	</div>
+	<button type="button" class="btn btn-sm btn-outline-secondary" ng-click="$ctrl.ToggleTheme()">
+		<span ng-if="$ctrl.state.theme === 'dark'">light</span>
+		<span ng-if="$ctrl.state.theme !== 'dark'">dark</span>
+	</button>
+</nav>

@@ -1,0 +1,104 @@
+/*=====================================================================
+  <event-list>: a scrolling table; the running row is highlighted,
+  denied and failed rows tinted.
+=====================================================================*/
+
+.event-list
+{
+	min-width: 0;
+	min-height: 0;
+}
+
+.event-list .event-head
+{
+	flex-shrink: 0;
+	min-width: 0;
+}
+
+.event-list .event-scroll
+{
+	overflow-y: auto;
+	min-height: 0;
+}
+
+.event-table thead th
+{
+	position: sticky;
+	top: 0;
+	background-color: var( --bs-body-bg );
+	z-index: 1;
+}
+
+.event-table .col-time
+{
+	width: 6.5rem;
+	white-space: nowrap;
+}
+
+.event-table .col-duration
+{
+	width: 5rem;
+	white-space: nowrap;
+}
+
+.event-table .col-tool
+{
+	width: 9rem;
+	white-space: nowrap;
+}
+
+.event-table .col-outcome
+{
+	width: 6rem;
+	white-space: nowrap;
+}
+
+.event-table .col-summary
+{
+	word-break: break-all;
+}
+
+.event-table tr.is-running td
+{
+	background-color: rgba( var( --bs-primary-rgb ), 0.15 );
+}
+
+.event-table tr.is-denied td
+{
+	background-color: rgba( var( --bs-warning-rgb ), 0.12 );
+}
+
+.event-table tr.is-failed td
+{
+	background-color: rgba( var( --bs-danger-rgb ), 0.12 );
+}
+
+.event-table tr.is-session td
+{
+	font-style: italic;
+}
+
+.event-table .outcome
+{
+	font-size: 0.85em;
+}
+
+.event-table .outcome-running
+{
+	color: var( --bs-primary );
+}
+
+.event-table .outcome-done
+{
+	color: var( --bs-success );
+}
+
+.event-table .outcome-denied
+{
+	color: var( --bs-warning );
+}
+
+.event-table .outcome-failed
+{
+	color: var( --bs-danger );
+}
