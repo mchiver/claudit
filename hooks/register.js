@@ -5,7 +5,8 @@
 // (turn.start, turn.complete), every row the conversation keeps
 // (session.append) and every tool call (tool.call), keeps the turn's
 // list of calls, shows the call in flight on the status line, puts the
-// turn's list beneath the answer, answers /claudit on | off | status
+// turn's list beneath the answer (and draws it as a table through
+// ui.render), answers /claudit on | off | status
 // (command.run), and posts each event to the Claudit server over HTTP.
 // It cannot listen on a port: the server is a separate process
 // (server/server.js) that the mod starts, through server/launch.js,
@@ -17,7 +18,7 @@
 // across sessions).
 //=====================================================================
 
-import { Summarise, OutcomeOf, FormatStatus, FormatBlock, CutToFit } from './format.js';
+import { Summarise, OutcomeOf, FormatStatus, FormatBlock, BlockHeader, BlockRows, PadLeft, PadRight, CutToFit } from './format.js';
 
 
 const DEFAULT_PORT = 3600;
@@ -27,6 +28,7 @@ const HEALTH_WAIT_MS = 250;
 const TICK_MS = 1000;
 const STORE_ENABLED = 'enabled';
 const MAIN_LOOP = 'main';
+const BLOCKS_KEPT = 50;
 
 
 // The session's state. A reload of the module starts it over; the
@@ -47,6 +49,7 @@ const STATE = {
 	turns: 0,
 	ticker: null,
 	loops: {},
+	blocks: [],
 };
 
 
@@ -187,8 +190,34 @@ export function register( on, options )
 		{
 			return answer;
 		}
-		const block = FormatBlock( calls, STATE.session );
+		const ended = await $.clock.now();
+		remember_block( calls, ended );
+		const block = FormatBlock( calls, STATE.session, ended );
 		return { text: block, usage: answer.usage };
+	} );
+
+
+	//-----------------------------------------------------------------
+	// The engine draws the block the turn.complete hook returned as a
+	// system notice, flattened to one line. On the terminal this draws
+	// it as a table instead, when the notice is one of ours.
+	//-----------------------------------------------------------------
+	on( 'ui.render', { component: 'InfoNotice' }, async function ( $, e, next )
+	{
+		const block = find_block( e.props ? e.props.text : undefined );
+		if ( !block || e.surface !== 'terminal' )
+		{
+			return next( e );
+		}
+		try
+		{
+			return draw_block( $, e, block );
+		}
+		catch ( error )
+		{
+			debug( $, 'draw_block failed: ' + message_of( error ) );
+			return next( e );
+		}
 	} );
 
 
@@ -670,6 +699,95 @@ function any_running()
 		}
 	}
 	return false;
+}
+
+
+//=====================================================================
+// The block beneath the answer
+//
+// The text goes to the transcript; its header is remembered with the
+// turn's rows so the render hook can draw the same block as a table.
+//=====================================================================
+
+function remember_block( Calls, EndedAt )
+{
+	STATE.blocks.push( {
+		header: BlockHeader( Calls, STATE.session, EndedAt ),
+		rows: BlockRows( Calls ),
+	} );
+	while ( STATE.blocks.length > BLOCKS_KEPT )
+	{
+		STATE.blocks.shift();
+	}
+}
+
+
+//---------------------------------------------------------------------
+
+function find_block( Text )
+{
+	if ( typeof Text !== 'string' )
+	{
+		return null;
+	}
+	for ( let index = STATE.blocks.length - 1; index >= 0; index-- )
+	{
+		if ( Text.startsWith( STATE.blocks[ index ].header ) )
+		{
+			return STATE.blocks[ index ];
+		}
+	}
+	return null;
+}
+
+
+//---------------------------------------------------------------------
+// The table: the header in the accent colour, then one row per call
+// with the clock and duration dim, the tool bold, the summary plain,
+// a denied or failed outcome in the theme's warning or error colour
+// and a subagent's id dim.
+//---------------------------------------------------------------------
+
+function draw_block( $, e, Block )
+{
+	const elements = $.ui.resolve( e );
+	const Box = elements.Box;
+	const Text = elements.Text;
+	const lines = [];
+	lines.push( h( Text, { color: 'claude', bold: true }, Block.header ) );
+	for ( const row of Block.rows )
+	{
+		const cells = [];
+		cells.push( h( Text, { dimColor: true }, row.clock + '  ' + PadLeft( row.duration, 7 ) + '  ' ) );
+		cells.push( h( Text, { bold: true }, PadRight( row.tool, 10 ) + '  ' ) );
+		cells.push( h( Text, null, row.summary ) );
+		if ( row.flagged )
+		{
+			cells.push( h( Text, { color: outcome_colour( row.outcome ) }, '  [' + row.outcome + ']' ) );
+		}
+		if ( row.agent )
+		{
+			cells.push( h( Text, { dimColor: true }, '  (agent ' + row.agent + ')' ) );
+		}
+		lines.push( h( Box, { flexDirection: 'row' }, ...cells ) );
+	}
+	return h( Box, { flexDirection: 'column' }, ...lines );
+}
+
+
+//---------------------------------------------------------------------
+
+function outcome_colour( Outcome )
+{
+	if ( Outcome === 'denied' )
+	{
+		return 'warning';
+	}
+	if ( Outcome === 'failed' )
+	{
+		return 'error';
+	}
+	return 'success';
 }
 
 

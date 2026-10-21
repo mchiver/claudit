@@ -140,7 +140,8 @@ export function FormatDuration( Ms )
 
 //---------------------------------------------------------------------
 // The status line while calls run: the one in flight with its tool,
-// elapsed time and summary, and the count so far this turn.
+// elapsed time and summary, and the count so far this turn. The engine
+// draws the line under the plugin's name, so it carries no prefix.
 //---------------------------------------------------------------------
 
 export function FormatStatus( Calls, Now )
@@ -150,45 +151,87 @@ export function FormatStatus( Calls, Now )
 	const noun = count === 1 ? 'call' : 'calls';
 	if ( running.length === 0 )
 	{
-		return 'claudit: ' + count + ' ' + noun + ' this turn';
+		return count + ' ' + noun + ' this turn';
 	}
 	const current = running[ running.length - 1 ];
 	const elapsed = FormatDuration( Now - current.start );
-	let line = 'claudit: ' + current.tool + ' ' + elapsed + '  ' + current.summary;
+	let line = current.tool + ' ' + elapsed + '  ' + current.summary;
 	line = line + '  (' + count + ' ' + noun + ' this turn)';
 	return line;
 }
 
 
 //---------------------------------------------------------------------
-// The block shown beneath the answer when a turn ends: a header line
-// naming the session and the count, then one line per call:
-// "hh:mm:ss  1.2s  Bash  description". Empty when the turn made no call.
+// The header of the block beneath the answer: the session, the time
+// the turn ended (when given) and the count. It is what the render
+// hook finds the turn's block by, so it starts with the mod's name.
 //---------------------------------------------------------------------
 
-export function FormatBlock( Calls, SessionId )
+export function BlockHeader( Calls, SessionId, EndedAt )
+{
+	const count = Calls.length;
+	const noun = count === 1 ? 'tool call' : 'tool calls';
+	let header = 'claudit · session ' + short_id( SessionId );
+	if ( typeof EndedAt === 'number' )
+	{
+		header = header + ' · ' + FormatClock( EndedAt );
+	}
+	return header + ' · ' + count + ' ' + noun;
+}
+
+
+//---------------------------------------------------------------------
+// One row per call, as strings: the clock, the duration, the tool, the
+// summary, the outcome, the agent's short id ('' on the main loop) and
+// whether the outcome is one to flag (denied or failed). Shared by the
+// text block and the drawn one.
+//---------------------------------------------------------------------
+
+export function BlockRows( Calls )
+{
+	const rows = [];
+	for ( const call of Calls || [] )
+	{
+		rows.push( {
+			clock: FormatClock( call.start ),
+			duration: FormatDuration( call.duration ),
+			tool: String( call.tool || '' ),
+			summary: String( call.summary || '' ),
+			outcome: String( call.outcome || 'done' ),
+			agent: call.agent ? short_id( call.agent ) : '',
+			flagged: call.outcome === 'denied' || call.outcome === 'failed',
+		} );
+	}
+	return rows;
+}
+
+
+//---------------------------------------------------------------------
+// The block shown beneath the answer when a turn ends, as text: the
+// header, then one line per call: "hh:mm:ss  1.2s  Bash  description".
+// Empty when the turn made no call.
+//---------------------------------------------------------------------
+
+export function FormatBlock( Calls, SessionId, EndedAt )
 {
 	if ( !Calls || Calls.length === 0 )
 	{
 		return '';
 	}
-	const count = Calls.length;
-	const noun = count === 1 ? 'tool call' : 'tool calls';
-	const lines = [];
-	lines.push( 'claudit · session ' + short_id( SessionId ) + ' · ' + count + ' ' + noun );
-	for ( const call of Calls )
+	const lines = [ BlockHeader( Calls, SessionId, EndedAt ) ];
+	for ( const row of BlockRows( Calls ) )
 	{
-		let line = FormatClock( call.start );
-		line = line + '  ' + pad_left( FormatDuration( call.duration ), 7 );
-		line = line + '  ' + pad_right( call.tool, 10 );
-		line = line + '  ' + call.summary;
-		if ( call.outcome === 'denied' || call.outcome === 'failed' )
+		let line = row.clock;
+		line = line + '  ' + pad_left( row.duration, 7 );
+		line = line + '  ' + pad_right( row.tool, 10 );
+		line = line + '  ' + row.summary;
+		if ( row.flagged )
 		{
-			line = line + '  [' + call.outcome + ']';
+			line = line + '  [' + row.outcome + ']';
 		}
-		if ( call.agent )
+		if ( row.agent )
 		{
-			line = line + '  (agent ' + short_id( call.agent ) + ')';
+			line = line + '  (agent ' + row.agent + ')';
 		}
 		lines.push( line );
 	}
@@ -386,4 +429,22 @@ export function ByteLength( Text )
 		}
 	}
 	return bytes;
+}
+
+
+//---------------------------------------------------------------------
+// Padding, for the drawn block as for the text one.
+//---------------------------------------------------------------------
+
+export function PadLeft( Text, Width )
+{
+	return pad_left( Text, Width );
+}
+
+
+//---------------------------------------------------------------------
+
+export function PadRight( Text, Width )
+{
+	return pad_right( Text, Width );
 }

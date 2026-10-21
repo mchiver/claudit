@@ -8,17 +8,17 @@ Git: https://github.com/mchiver/claudit
 
 Claudit has two parts that run in different places.
 
-- **The mod**, the Claude Code plugin itself. It runs inside Claude Code's plugin engine as a hooks module (`hooks/register.js`), in a sandbox of its own with no Node and no network of its own: it reaches the outside only through the engine interface, which offers file reads and writes, an HTTP client, a process runner and a small key-value store. It hooks `turn.start` and `turn.complete` for the turns (and to put a text block of the turn's calls beneath Claude's answer), `session.append` for every row the conversation keeps (the prompt, the assistant's response, a tool result, what the engine appends), `tool.call` to see each call before it runs and after it finishes, `session.start` and `session.end` for the session marks, and `command.run` to answer the `/claudit` slash command. It cannot listen on a port, so it is a publisher, not a server.
+- **The mod**, the Claude Code plugin itself. It runs inside Claude Code's plugin engine as a hooks module (`hooks/register.js`), in a sandbox of its own with no Node and no network of its own: it reaches the outside only through the engine interface, which offers file reads and writes, an HTTP client, a process runner and a small key-value store. It hooks `turn.start` and `turn.complete` for the turns (and to put a text block of the turn's calls beneath Claude's answer), `session.append` for every row the conversation keeps (the prompt, the assistant's response, a tool result, what the engine appends), `tool.call` to see each call before it runs and after it finishes, `ui.render` on the engine's InfoNotice component to draw the block beneath the answer as a coloured table on the terminal, `session.start` and `session.end` for the session marks, and `command.run` to answer the `/claudit` slash command. It cannot listen on a port, so it is a publisher, not a server.
 - **The server**, a Node + Express process. It receives the mod's events, streams them live to the web clients as Server-Sent Events, writes the archive to local JSON Lines files, prunes it by the retention policy, and serves the web UI. The web UI is AngularJS + Bootstrap, built as components under `public/components/<name>/`.
 
 A child the engine spawns dies with the module, so the mod starts the server through `server/launch.js`, which detaches it. That is why the server outlives the session.
 
 ## Where things live
 
-Built by the plans "Claudit Design I" (Finished, commit 6823236, 2026-10-21) and "Claudit Design II: Turns" (Finished, 2026-10-21), on master:
+Built by the plans "Claudit Design I" (Finished, commit 6823236, 2026-10-21), "Claudit Design II: Turns" (Finished, commit 24bbde3, 2026-10-21) and "Claudit Design III: Terminal Display" (Finished, 2026-10-21), on master:
 
 - `.claude-plugin/plugin.json`: the plugin manifest, with the plugin option `port` (0 = use the config file).
-- `hooks/hooks.json` and `hooks/register.js`: the mod. `hooks/format.js` holds its pure formatting (summary per tool, outcome, clock, duration, status line, turn-end block) and the row cutting (`CutToFit`, `ByteLength`), tested in `hooks/format.test.js`.
+- `hooks/hooks.json` and `hooks/register.js`: the mod. `hooks/format.js` holds its pure formatting (summary per tool, outcome, clock, duration, status line, the turn-end block's header and rows, padding) and the row cutting (`CutToFit`, `ByteLength`), tested in `hooks/format.test.js`.
 - `server/`: `server.js` (start-up, prune at start and daily, `Start()` for tests), `app.js` (the Express routes and the static UI), `archive.js` (JSON Lines per session under dated folders, summaries, retention), `live.js` (the SSE hub), `config.js` (defaults, `~/.claudit/config.json`, command line), `launch.js` (starts the server detached, output to `~/.claudit/server.log`). Tests in `archive.test.js` and `app.test.js`.
 - `public/`: `index.html`, `app.js` (the module, the State service, the filters), `turns.js` (the pure tree builder, BuildTurns, tested in `turns.test.js`), `app.css`, and one folder per AngularJS component under `public/components/`: claudit-app, title-bar, session-list, event-list (the three-level tree).
 - `README.md`: use, configuration and the API. `.guides/launch-server.md`; `.definitions/event.md`, `session.md` and `turn.md`.
@@ -26,7 +26,7 @@ Built by the plans "Claudit Design I" (Finished, commit 6823236, 2026-10-21) and
 - Runtime state, outside the repo: `~/.claudit/config.json`, `~/.claudit/archive/`, `~/.claudit/server.log`.
 - `.claude-plugin/types/` and the root `tsconfig.json`: written by Claude Code's plugin engine when it loads the mod, for editor type hints only; the types folder ignores itself, the root `tsconfig.json` is untracked. Not part of the build and no TypeScript is written.
 
-Commands: `npm test` (node --test, 25 tests), `npm start` (the server in the foreground), `claude plugin validate .`, `claude --plugin-dir <repo>` to load the mod in a session.
+Commands: `npm test` (node --test, 27 tests), `npm start` (the server in the foreground), `claude plugin validate .`, `claude --plugin-dir <repo>` to load the mod in a session.
 
 ## Conventions
 
@@ -60,8 +60,21 @@ Settled in the plan "Claudit Design II: Turns" (all three threads applied):
 - **Web UI tree.** Session > turn (first line of the user's message, time, calls, duration, reason) > the assistant's text rows and the tool calls in order > JSON (a call: its tool_use input and its tool_result row). Engine rows dimmed behind the title bar's "engine rows" toggle, hidden by default. In a live session the turn in flight is open and followed. Untagged events fall under "(no turn recorded)".
 - **Subagents.** Their turns and rows shown inline with the agent id as a badge; nesting them under the Agent call that spawned them is a later plan.
 
+Settled in the plan "Claudit Design III: Terminal Display" (its build log accepted):
+
+- **Status line.** No "claudit: " prefix; the engine draws the line under the plugin's name.
+- **The block beneath the answer.** The header carries the turn's end time. The text block is kept for the transcript and the archive; a `ui.render` hook on the InfoNotice component draws a notice that begins with one of the last 50 turns' headers as a table on the terminal surface (accent header, dim clock and duration, bold tool, a denied or failed outcome in the warning or error colour, a subagent's id dim). Any other notice, any other surface and any drawing error fall back to the engine's drawing. The rows come from `BlockRows` in `hooks/format.js`, shared by the text and the drawing; `feedback: false` silences both.
+
+Settled in the plan "Claudit Design IV: Publishing" (Draft, all four threads applied, not yet built):
+
+- **The road.** The GitHub repository becomes a marketplace named mchiver (`.claude-plugin/marketplace.json`, the plugin claudit at source `./`); the Readme gets the install line `/plugin install claudit --marketplace mchiver/claudit`, the `--plugin-dir` section staying as the developer road.
+- **No dependencies.** express is dropped and the server is rewritten on node:http, so an installed copy (which has no node_modules) runs on Node alone.
+- **What travels.** `.consensus/`, `.definitions/`, `.guides/` and CLAUDE.md leave the public repository: untracked and ignored, kept on disk; version control of their own is a later plan.
+- **Release.** Version 0.3.0, one commit, tagged v0.3.0; an install test from the folder as a marketplace and again from GitHub. An icon and the Anthropic plugin directory are later.
+
 ## Built and known
 
+- Claudit Design III: Terminal Display is built and accepted (2026-10-21): 27 tests and the plugin validator, which lists `ui.render{component=InfoNotice}`. The drawn table is checked by eye in a fresh interactive session, not by a test.
 - Claudit Design II: Turns is built and accepted (2026-10-21), version 0.2.0: 25 tests, the plugin validator, a headless session whose 27 events arrived in order and stamped, and the page checked in Chrome through all three levels. The server on 3600 runs the new code.
 - Claudit Design I is built and accepted. The checks: 15 tests, the plugin validator, a launcher smoke test, and a headless session that started the server by itself and recorded its own tool calls.
 - Checked from an interactive session (2026-10-21): /claudit is registered at session start and answers /claudit status itself; the session's calls reach the archive and the page with their summaries, durations and outcomes, and a shell call that exits non-zero is recorded as failed. In a headless (-p) run the prompt is read before the command registers, so "/claudit status" as the whole prompt goes to the model.
@@ -71,4 +84,4 @@ Settled in the plan "Claudit Design II: Turns" (all three threads applied):
 
 ## Open
 
-Nothing in Consensus. Next plans will come from using the page and the session.
+Claudit Design IV: Publishing is a Draft with every thread applied, ready to build when an Owner says so.

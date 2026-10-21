@@ -4,7 +4,7 @@ A Claude Code plugin that exposes the audit trail of a session: every turn, ever
 
 ## What it is made of
 
-- **The mod** (`hooks/register.js`) runs inside Claude Code's plugin engine. It sees each turn start and end, each row the conversation keeps (the prompt, the assistant's response, a tool result, what the engine appends), and each tool call before it runs and after it finishes. It shows the call in flight on the status line, puts the turn's list of calls beneath Claude's answer, answers `/claudit`, and posts each event to the server over HTTP. It cannot listen on a port.
+- **The mod** (`hooks/register.js`) runs inside Claude Code's plugin engine. It sees each turn start and end, each row the conversation keeps (the prompt, the assistant's response, a tool result, what the engine appends), and each tool call before it runs and after it finishes. It shows the call in flight on the status line (the engine prefixes the plugin's name), puts the turn's list of calls beneath Claude's answer, drawn as a coloured table on the terminal through a `ui.render` hook on the engine's notice component, answers `/claudit`, and posts each event to the server over HTTP. It cannot listen on a port.
 - **The server** (`server/`) is a separate Node + Express process. It receives the events, streams them to the web page as Server-Sent Events, writes the archive, prunes it, and serves the web UI. The mod starts it when nothing answers on its port, detached, so it outlives the session.
 - **The web UI** (`public/`) is AngularJS + Bootstrap: the sessions down the left, live on top and archived below; the selected session on the right as a tree of turns. A turn is one of your messages; it opens into the assistant's messages and the tool calls in order; each of those opens into its JSON (a call into its `tool_use` input and its `tool_result` row). The engine's rows (reminders, attachments, notices, thinking) are hidden until the **engine rows** button shows them, dimmed. Light and dark themes and three sizes in the title bar.
 
@@ -15,6 +15,18 @@ Load the plugin in a session:
 ```
 claude --plugin-dir W:/code-projects/orgs/mchiver/claudit.git
 ```
+
+To load it in every session without the flag, name the folder in `CLAUDE_CODE_PLUGIN_DIRS`, either in the environment or in the `env` block of `~/.claude/settings.json`:
+
+```json
+{
+	"env": {
+		"CLAUDE_CODE_PLUGIN_DIRS": "W:/code-projects/orgs/mchiver/claudit.git"
+	}
+}
+```
+
+Each folder named there loads as a `--plugin-dir` would, saved files reloading the mod; several folders are separated by the platform's path-list separator (`;` on Windows, `:` elsewhere).
 
 Then in the session:
 
@@ -51,7 +63,7 @@ npm start
 - `archive_folder`: one folder per day, `<yyyy-mm-dd>/<session id>.jsonl` with `<session id>.json` beside it.
 - `retention_days`: day folders older than this are removed at start and once a day; 0 keeps everything.
 - `live_minutes`: a session that has not ended counts as live for this long after its last event.
-- `feedback`: false silences the block beneath the answer without stopping the stream and the archive.
+- `feedback`: false silences the block beneath the answer (its text and its drawn table) without stopping the stream and the archive.
 - `messages`: false stops the message rows (the conversation's JSON), leaving the turns and the calls.
 - `message_limit`: the most bytes one row's JSON may take; a larger row has its text, thinking and tool-result content cut to fit, each cut string ending in a mark, and the event marked `truncated`. 0 means no cap. The server takes a body of up to 8 MB.
 

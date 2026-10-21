@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Summarise, OutcomeOf, FormatClock, FormatDuration, FormatStatus, FormatBlock, CutToFit, ByteLength, SUMMARY_LENGTH } from './format.js';
+import { Summarise, OutcomeOf, FormatClock, FormatDuration, FormatStatus, FormatBlock, BlockHeader, BlockRows, PadLeft, PadRight, CutToFit, ByteLength, SUMMARY_LENGTH } from './format.js';
 
 
 //---------------------------------------------------------------------
@@ -70,8 +70,8 @@ test( 'FormatStatus names the call in flight and the count', function ()
 		{ tool: 'Bash', summary: 'Run tests', start: 1000, outcome: 'running' },
 	];
 	const line = FormatStatus( calls, 3100 );
-	assert.equal( line, 'claudit: Bash 2.1s  Run tests  (2 calls this turn)' );
-	assert.equal( FormatStatus( [ calls[ 0 ] ], 5000 ), 'claudit: 1 call this turn' );
+	assert.equal( line, 'Bash 2.1s  Run tests  (2 calls this turn)' );
+	assert.equal( FormatStatus( [ calls[ 0 ] ], 5000 ), '1 call this turn' );
 } );
 
 
@@ -150,4 +150,30 @@ test( 'CutToFit cuts a plain text object too, as the turn start uses it', functi
 	assert.equal( cut.truncated, true );
 	assert.ok( cut.row.text.length < 1000 );
 	assert.ok( ByteLength( JSON.stringify( cut.row ) ) <= 300 );
+} );
+
+//---------------------------------------------------------------------
+test( 'BlockHeader names the session, the end time when given, and the count', function ()
+{
+	const ended = new Date( 2026, 9, 21, 12, 1, 5 ).getTime();
+	assert.equal( BlockHeader( [ {} ], 'session-abcdefgh-rest' ), 'claudit · session session- · 1 tool call' );
+	assert.equal( BlockHeader( [ {}, {}, {} ], '0d9fcdd9-6baf', ended ), 'claudit · session 0d9fcdd9 · 12:01:05 · 3 tool calls' );
+	assert.ok( FormatBlock( [ { tool: 'Read', summary: 'a', start: ended, duration: 5, outcome: 'done' } ], '0d9fcdd9-6baf', ended ).startsWith( 'claudit · session 0d9fcdd9 · 12:01:05 · 1 tool call' ) );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'BlockRows gives one row of strings per call, flagging denied and failed', function ()
+{
+	const start = new Date( 2026, 9, 21, 9, 30, 0 ).getTime();
+	const rows = BlockRows( [
+		{ tool: 'Bash', summary: 'List files', start: start, duration: 1200, outcome: 'done', agent: null },
+		{ tool: 'Edit', summary: 'a.md', start: start + 2000, duration: 300, outcome: 'denied', agent: 'agent-12345678' },
+	] );
+	assert.equal( rows.length, 2 );
+	assert.deepEqual( rows[ 0 ], { clock: '09:30:00', duration: '1.2s', tool: 'Bash', summary: 'List files', outcome: 'done', agent: '', flagged: false } );
+	assert.deepEqual( rows[ 1 ], { clock: '09:30:02', duration: '300ms', tool: 'Edit', summary: 'a.md', outcome: 'denied', agent: 'agent-12', flagged: true } );
+	assert.deepEqual( BlockRows( [] ), [] );
+	assert.equal( PadLeft( '1.2s', 7 ), '   1.2s' );
+	assert.equal( PadRight( 'Bash', 6 ), 'Bash  ' );
 } );

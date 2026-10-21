@@ -4,8 +4,8 @@
 	"Context": "doc-jgw-q6u-5lv",
 	"ContextFolder": "fld-run-d7s-bac",
 	"Created": "2026-10-21T10:03:16.597Z",
-	"Updated": "2026-10-21T15:34:14.944Z",
-	"Version": 8,
+	"Updated": "2026-10-21T18:42:34.175Z",
+	"Version": 10,
 	"Items": [
 		{
 			"Kind": "folder",
@@ -32,6 +32,14 @@
 		{
 			"Kind": "plan",
 			"Id": "pln-fjw-s64-x88"
+		},
+		{
+			"Kind": "plan",
+			"Id": "pln-p63-hec-0mu"
+		},
+		{
+			"Kind": "plan",
+			"Id": "pln-02v-ez9-39c"
 		}
 	],
 	"Archive": [],
