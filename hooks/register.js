@@ -1,28 +1,32 @@
 //=====================================================================
 // Claudit: the mod.
 //
-// Runs inside Claude Code's plugin engine. It sees every tool call
-// (tool.call), keeps the turn's list, shows the call in flight on the
-// status line, puts the turn's list beneath the answer (turn.complete),
-// answers /claudit on | off | status (command.run), and posts each
-// event to the Claudit server over HTTP. It cannot listen on a port:
-// the server is a separate process (server/server.js) that the mod
-// starts, through server/launch.js, when its health route does not
-// answer.
+// Runs inside Claude Code's plugin engine. It sees every turn
+// (turn.start, turn.complete), every row the conversation keeps
+// (session.append) and every tool call (tool.call), keeps the turn's
+// list of calls, shows the call in flight on the status line, puts the
+// turn's list beneath the answer, answers /claudit on | off | status
+// (command.run), and posts each event to the Claudit server over HTTP.
+// It cannot listen on a port: the server is a separate process
+// (server/server.js) that the mod starts, through server/launch.js,
+// when its health route does not answer.
 //
-// Reads: ~/.claudit/config.json (port, feedback), the plugin option
-// "port" (overrides the file when above 0), the engine store key
-// "enabled" (the /claudit switch, kept across sessions).
+// Reads: ~/.claudit/config.json (port, feedback, messages,
+// message_limit), the plugin option "port" (overrides the file when
+// above 0), the engine store key "enabled" (the /claudit switch, kept
+// across sessions).
 //=====================================================================
 
-import { Summarise, OutcomeOf, FormatStatus, FormatBlock } from './format.js';
+import { Summarise, OutcomeOf, FormatStatus, FormatBlock, CutToFit } from './format.js';
 
 
 const DEFAULT_PORT = 3600;
+const DEFAULT_MESSAGE_LIMIT = 65536;
 const HEALTH_TRIES = 20;
 const HEALTH_WAIT_MS = 250;
 const TICK_MS = 1000;
 const STORE_ENABLED = 'enabled';
+const MAIN_LOOP = 'main';
 
 
 // The session's state. A reload of the module starts it over; the
@@ -30,6 +34,8 @@ const STORE_ENABLED = 'enabled';
 const STATE = {
 	enabled: true,
 	feedback: true,
+	messages: true,
+	message_limit: DEFAULT_MESSAGE_LIMIT,
 	port: DEFAULT_PORT,
 	server: 'http://127.0.0.1:' + DEFAULT_PORT,
 	server_ok: false,
@@ -38,7 +44,9 @@ const STATE = {
 	calls: [],
 	counter: 0,
 	total: 0,
+	turns: 0,
 	ticker: null,
+	loops: {},
 };
 
 
@@ -70,6 +78,7 @@ export function register( on, options )
 	{
 		if ( STATE.enabled && STATE.server_ok )
 		{
+			await release_all_held( $ );
 			await post_event( $, {
 				kind: 'session',
 				phase: 'end',
@@ -80,6 +89,46 @@ export function register( on, options )
 			} );
 		}
 		return next( e );
+	} );
+
+
+	//-----------------------------------------------------------------
+	on( 'turn.start', async function ( $, e, next )
+	{
+		const started = await next( e );
+		if ( !STATE.enabled )
+		{
+			return started;
+		}
+		try
+		{
+			await start_turn( $, e, started );
+		}
+		catch ( error )
+		{
+			debug( $, 'start_turn failed: ' + message_of( error ) );
+		}
+		return started;
+	} );
+
+
+	//-----------------------------------------------------------------
+	on( 'session.append', async function ( $, e, next )
+	{
+		const stored = await next( e );
+		if ( !STATE.enabled || !STATE.messages )
+		{
+			return stored;
+		}
+		try
+		{
+			await record_row( $, e, stored );
+		}
+		catch ( error )
+		{
+			debug( $, 'record_row failed: ' + message_of( error ) );
+		}
+		return stored;
 	} );
 
 
@@ -118,6 +167,14 @@ export function register( on, options )
 	on( 'turn.complete', async function ( $, e, next )
 	{
 		const answer = await next( e );
+		try
+		{
+			await end_turn( $, e );
+		}
+		catch ( error )
+		{
+			debug( $, 'end_turn failed: ' + message_of( error ) );
+		}
 		if ( e.agentId !== undefined )
 		{
 			return answer;
@@ -179,6 +236,8 @@ async function start_session( $, e, options )
 	STATE.calls = [];
 	STATE.counter = 0;
 	STATE.total = 0;
+	STATE.turns = 0;
+	STATE.loops = {};
 
 	await $.command.register( {
 		name: 'claudit',
@@ -217,8 +276,9 @@ async function start_session( $, e, options )
 
 
 //---------------------------------------------------------------------
-// ~/.claudit/config.json gives the port and the feedback switch; the
-// plugin option "port" overrides the file when it is above 0.
+// ~/.claudit/config.json gives the port, the feedback switch, the
+// messages switch and the message limit; the plugin option "port"
+// overrides the file when it is above 0.
 //---------------------------------------------------------------------
 
 async function load_config( $, options )
@@ -246,6 +306,13 @@ async function load_config( $, options )
 	STATE.port = port;
 	STATE.server = 'http://127.0.0.1:' + port;
 	STATE.feedback = ( config.feedback !== false );
+	STATE.messages = ( config.messages !== false );
+	let limit = Number( config.message_limit );
+	if ( config.message_limit === undefined || Number.isNaN( limit ) || limit < 0 )
+	{
+		limit = DEFAULT_MESSAGE_LIMIT;
+	}
+	STATE.message_limit = limit;
 }
 
 
@@ -354,6 +421,179 @@ async function post_event( $, Event )
 
 
 //=====================================================================
+// The loops and their turns
+//
+// Each loop (the main conversation, or a subagent by its id) has at
+// most one turn in flight; every call and row is stamped with it. A
+// row that arrives before its turn starts (the prompt, and what the
+// engine appends beside it) is held and stamped when the turn starts.
+//=====================================================================
+
+function loop_of( AgentId )
+{
+	const key = AgentId || MAIN_LOOP;
+	if ( !STATE.loops[ key ] )
+	{
+		STATE.loops[ key ] = { turn: null, last: null, held: [] };
+	}
+	return STATE.loops[ key ];
+}
+
+
+//---------------------------------------------------------------------
+
+async function start_turn( $, e, Started )
+{
+	const now = await $.clock.now();
+	const loop = loop_of( e.agentId );
+	let id = e.turnId;
+	if ( Started && Started.turnId )
+	{
+		id = Started.turnId;
+	}
+	loop.turn = id;
+	STATE.turns = STATE.turns + 1;
+	const cut = CutToFit( { text: String( e.text || '' ) }, STATE.message_limit );
+	const event = {
+		kind: 'turn',
+		phase: 'start',
+		id: id,
+		session: STATE.session,
+		agent: e.agentId || null,
+		text: cut.row.text,
+		time: now,
+		cwd: STATE.cwd,
+	};
+	if ( cut.truncated )
+	{
+		event.truncated = true;
+	}
+	await post_event( $, event );
+	const held = loop.held;
+	loop.held = [];
+	for ( const row of held )
+	{
+		row.turn = id;
+		await post_event( $, row );
+	}
+}
+
+
+//---------------------------------------------------------------------
+
+async function end_turn( $, e )
+{
+	if ( !STATE.enabled )
+	{
+		return;
+	}
+	const now = await $.clock.now();
+	const loop = loop_of( e.agentId );
+	const id = e.turnId || loop.turn;
+	loop.last = id;
+	loop.turn = null;
+	await post_event( $, {
+		kind: 'turn',
+		phase: 'end',
+		id: id,
+		session: STATE.session,
+		agent: e.agentId || null,
+		time: now,
+		duration: e.durationMs,
+		reason: e.reason,
+		usage: e.usage || null,
+		cwd: STATE.cwd,
+	} );
+}
+
+
+//---------------------------------------------------------------------
+// One row of the conversation, as the engine keeps it, as an event.
+// Stamped with the loop's turn in flight; held when a turn is pending
+// (a prompt arrived and its turn has not started); otherwise given the
+// turn that last ended, for the rows the engine appends after it.
+//---------------------------------------------------------------------
+
+async function record_row( $, e, Stored )
+{
+	const now = await $.clock.now();
+	let message = e.message;
+	let uuid = e.uuid;
+	if ( Stored && Stored.message )
+	{
+		message = Stored.message;
+	}
+	if ( Stored && Stored.uuid )
+	{
+		uuid = Stored.uuid;
+	}
+	const cut = CutToFit( message, STATE.message_limit );
+	const event = {
+		kind: 'message',
+		id: uuid,
+		session: STATE.session,
+		agent: e.agentId || null,
+		turn: null,
+		door: e.door,
+		origin: e.origin || null,
+		time: now,
+		message: cut.row,
+		cwd: STATE.cwd,
+	};
+	if ( cut.truncated )
+	{
+		event.truncated = true;
+	}
+	const loop = loop_of( e.agentId );
+	if ( loop.turn )
+	{
+		event.turn = loop.turn;
+		await post_event( $, event );
+		return;
+	}
+	if ( e.door === 'prompt' )
+	{
+		await release_held( $, loop );
+		loop.held.push( event );
+		return;
+	}
+	if ( loop.held.length > 0 )
+	{
+		loop.held.push( event );
+		return;
+	}
+	event.turn = loop.last;
+	await post_event( $, event );
+}
+
+
+//---------------------------------------------------------------------
+// Posts the rows a loop holds without a turn, when none is coming.
+//---------------------------------------------------------------------
+
+async function release_held( $, Loop )
+{
+	const held = Loop.held;
+	Loop.held = [];
+	for ( const row of held )
+	{
+		await post_event( $, row );
+	}
+}
+
+
+//---------------------------------------------------------------------
+
+async function release_all_held( $ )
+{
+	for ( const key of Object.keys( STATE.loops ) )
+	{
+		await release_held( $, STATE.loops[ key ] );
+	}
+}
+
+
+//=====================================================================
 // The calls
 //=====================================================================
 
@@ -366,11 +606,13 @@ async function begin_call( $, e )
 	{
 		id = STATE.session + '-' + STATE.counter;
 	}
+	const loop = loop_of( e.agentId );
 	const call = {
 		kind: 'call',
 		id: id,
 		session: STATE.session,
 		agent: e.agentId || null,
+		turn: loop.turn || loop.last,
 		tool: e.tool,
 		summary: Summarise( e ),
 		start: now,
@@ -495,8 +737,14 @@ function status_text()
 	const lines = [];
 	lines.push( 'claudit is ' + ( STATE.enabled ? 'on' : 'off' ) + '.' );
 	lines.push( server_line() );
-	lines.push( 'Session ' + STATE.session + ': ' + STATE.total + ' tool calls recorded, ' + STATE.calls.length + ' this turn.' );
+	lines.push( 'Session ' + STATE.session + ': ' + STATE.turns + ' turns, ' + STATE.total + ' tool calls recorded, ' + STATE.calls.length + ' this turn.' );
 	lines.push( 'Turn-end feedback: ' + ( STATE.feedback ? 'on' : 'off' ) + ' (feedback in ~/.claudit/config.json).' );
+	let limit = 'no cap';
+	if ( STATE.message_limit > 0 )
+	{
+		limit = STATE.message_limit + ' bytes per row';
+	}
+	lines.push( 'Message rows: ' + ( STATE.messages ? 'on' : 'off' ) + ', ' + limit + ' (messages, message_limit in ~/.claudit/config.json).' );
 	return lines.join( '\n' );
 }
 

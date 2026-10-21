@@ -4,8 +4,8 @@
 	"Context": "doc-jgw-q6u-5lv",
 	"ContextFolder": "fld-run-d7s-bac",
 	"Created": "2026-10-21T10:03:16.597Z",
-	"Updated": "2026-10-21T10:54:01.425Z",
-	"Version": 3,
+	"Updated": "2026-10-21T15:34:14.944Z",
+	"Version": 8,
 	"Items": [
 		{
 			"Kind": "folder",
@@ -19,8 +19,19 @@
 			]
 		},
 		{
+			"Kind": "folder",
+			"Id": "fld-ea9-l3w-c7c",
+			"Name": "Finished",
+			"Items": [
+				{
+					"Kind": "plan",
+					"Id": "pln-u57-zho-rpf"
+				}
+			]
+		},
+		{
 			"Kind": "plan",
-			"Id": "pln-u57-zho-rpf"
+			"Id": "pln-fjw-s64-x88"
 		}
 	],
 	"Archive": [],

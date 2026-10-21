@@ -9,7 +9,7 @@
 			<span class="ms-auto small dim">{{ summary.updated | clock }}</span>
 		</div>
 		<div class="small text-truncate" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</div>
-		<div class="small dim">{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
+		<div class="small dim"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
 	</a>
 
 	<div class="session-group-title small text-uppercase dim px-3 pt-3 pb-1">Archived</div>
@@ -21,6 +21,6 @@
 			<span class="ms-auto small dim">{{ summary.started | day }} {{ summary.started | clock }}</span>
 		</div>
 		<div class="small text-truncate" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</div>
-		<div class="small dim">{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
+		<div class="small dim"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
 	</a>
 </aside>

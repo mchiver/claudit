@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Summarise, OutcomeOf, FormatClock, FormatDuration, FormatStatus, FormatBlock, SUMMARY_LENGTH } from './format.js';
+import { Summarise, OutcomeOf, FormatClock, FormatDuration, FormatStatus, FormatBlock, CutToFit, ByteLength, SUMMARY_LENGTH } from './format.js';
 
 
 //---------------------------------------------------------------------
@@ -91,4 +91,63 @@ test( 'FormatBlock: a header and one line per call; empty with no calls', functi
 	assert.ok( lines[ 1 ].startsWith( '09:30:00     1.2s  Bash        List files' ) );
 	assert.ok( lines[ 2 ].includes( '[denied]' ) );
 	assert.ok( lines[ 2 ].includes( '(agent agent-12)' ) );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'ByteLength counts UTF-8 bytes', function ()
+{
+	assert.equal( ByteLength( 'abc' ), 3 );
+	assert.equal( ByteLength( 'é' ), 2 );
+	assert.equal( ByteLength( '€' ), 3 );
+	assert.equal( ByteLength( '😀' ), 4 );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'CutToFit leaves a row under the limit as it is, and cuts nothing with no limit', function ()
+{
+	const row = { type: 'user', content: [ { type: 'text', text: 'short' } ] };
+	const same = CutToFit( row, 1000 );
+	assert.equal( same.row, row );
+	assert.equal( same.truncated, false );
+	const big = { type: 'user', content: [ { type: 'text', text: 'x'.repeat( 5000 ) } ] };
+	assert.equal( CutToFit( big, 0 ).row, big );
+	assert.equal( CutToFit( big, 0 ).truncated, false );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'CutToFit shortens text, thinking and tool results until the JSON fits, and marks the cut', function ()
+{
+	const row = {
+		type: 'user',
+		content: [
+			{ type: 'tool_result', tool_use_id: 't1', content: 'a'.repeat( 100000 ) },
+			{ type: 'tool_result', tool_use_id: 't2', content: [ { type: 'text', text: 'b'.repeat( 30000 ) } ] },
+			{ type: 'text', text: 'c'.repeat( 10000 ) },
+			{ type: 'thinking', thinking: 'd'.repeat( 10000 ) },
+			{ type: 'image', source: { data: 'e'.repeat( 200 ) } },
+		],
+	};
+	const cut = CutToFit( row, 65536 );
+	assert.equal( cut.truncated, true );
+	assert.notEqual( cut.row, row );
+	assert.ok( ByteLength( JSON.stringify( cut.row ) ) <= 65536 );
+	assert.equal( row.content[ 0 ].content.length, 100000 );
+	assert.ok( cut.row.content[ 0 ].content.includes( '[claudit cut ' ) );
+	assert.ok( cut.row.content[ 1 ].content[ 0 ].text.includes( '[claudit cut ' ) );
+	assert.ok( cut.row.content[ 2 ].text.includes( '[claudit cut ' ) );
+	assert.ok( cut.row.content[ 3 ].thinking.includes( '[claudit cut ' ) );
+	assert.equal( cut.row.content[ 4 ].source.data.length, 200 );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'CutToFit cuts a plain text object too, as the turn start uses it', function ()
+{
+	const cut = CutToFit( { text: 'y'.repeat( 1000 ) }, 300 );
+	assert.equal( cut.truncated, true );
+	assert.ok( cut.row.text.length < 1000 );
+	assert.ok( ByteLength( JSON.stringify( cut.row ) ) <= 300 );
 } );

@@ -81,7 +81,11 @@ export function LoadConfig( Overrides )
 		}
 	}
 	const config = Object.assign( {}, DEFAULTS, from_file, clean( Overrides ) );
-	config.port = Number( config.port ) || DEFAULTS.port;
+	config.port = Number( config.port );
+	if ( Number.isNaN( config.port ) || config.port < 0 )
+	{
+		config.port = DEFAULTS.port;
+	}
 	config.retention_days = Number( config.retention_days );
 	if ( Number.isNaN( config.retention_days ) || config.retention_days < 0 )
 	{

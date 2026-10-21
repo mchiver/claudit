@@ -6,6 +6,8 @@
 		<span ng-if="!$ctrl.state.connected">not connected</span>
 		<span ng-if="$ctrl.state.health" class="dim ms-2">{{ $ctrl.state.health.sessions }} sessions · port {{ $ctrl.state.health.port }}</span>
 	</span>
+	<button type="button" class="btn btn-sm btn-outline-secondary me-2" ng-class="{ active: $ctrl.state.engine }"
+		ng-click="$ctrl.ToggleEngine()" title="Show the rows the engine appends: reminders, attachments, notices, thinking">engine rows</button>
 	<div class="btn-group btn-group-sm me-2" role="group" aria-label="Scale">
 		<button type="button" class="btn btn-outline-secondary" ng-repeat="scale in $ctrl.scales"
 			ng-class="{ active: $ctrl.state.scale === scale }" ng-click="$ctrl.SetScale( scale )">{{ scale }}</button>

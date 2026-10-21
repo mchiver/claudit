@@ -1,6 +1,8 @@
 /*=====================================================================
-  <event-list>: a scrolling table; the running row is highlighted,
-  denied and failed rows tinted.
+  <event-list>: a scrolling tree. A turn's head is a band that opens
+  its rows; a row's head opens its JSON. The running turn and the
+  running call are highlighted, denied and failed calls tinted, the
+  engine's rows dimmed.
 =====================================================================*/
 
 .event-list
@@ -21,84 +23,203 @@
 	min-height: 0;
 }
 
-.event-table thead th
-{
-	position: sticky;
-	top: 0;
-	background-color: var( --bs-body-bg );
-	z-index: 1;
-}
-
-.event-table .col-time
+.event-list .col-time
 {
 	width: 6.5rem;
+	flex-shrink: 0;
 	white-space: nowrap;
 }
 
-.event-table .col-duration
+.event-list .col-duration
 {
 	width: 5rem;
+	flex-shrink: 0;
 	white-space: nowrap;
 }
 
-.event-table .col-tool
+.event-list .col-tool
 {
 	width: 9rem;
+	flex-shrink: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.event-list .col-outcome
+{
+	width: 5rem;
+	flex-shrink: 0;
 	white-space: nowrap;
 }
 
-.event-table .col-outcome
+.event-list .col-summary
 {
-	width: 6rem;
-	white-space: nowrap;
+	min-width: 0;
 }
 
-.event-table .col-summary
+/* Turns */
+
+.event-list .turn
 {
-	word-break: break-all;
+	border-bottom: 1px solid var( --bs-border-color );
 }
 
-.event-table tr.is-running td
+.event-list .turn-head
+{
+	cursor: pointer;
+	background-color: rgba( var( --bs-secondary-rgb ), 0.12 );
+	user-select: none;
+}
+
+.event-list .turn-head:hover
+{
+	background-color: rgba( var( --bs-secondary-rgb ), 0.22 );
+}
+
+.event-list .turn.is-running > .turn-head
+{
+	background-color: rgba( var( --bs-primary-rgb ), 0.18 );
+}
+
+.event-list .turn.is-synthetic > .turn-head .turn-text
+{
+	font-style: italic;
+	opacity: 0.7;
+}
+
+.event-list .caret
+{
+	display: inline-block;
+	width: 1em;
+	text-align: center;
+	opacity: 0.7;
+}
+
+.event-list .turn-text
+{
+	min-width: 0;
+}
+
+.event-list .json-button
+{
+	padding: 0 0.3em;
+	line-height: 1;
+	font-family: ui-monospace, Consolas, "Cascadia Mono", Menlo, monospace;
+	text-decoration: none;
+	opacity: 0.6;
+}
+
+.event-list .json-button:hover
+{
+	opacity: 1;
+}
+
+/* Rows inside a turn */
+
+.event-list .turn-rows
+{
+	padding-left: 1.5rem;
+}
+
+.event-list .row-head
+{
+	cursor: pointer;
+	border-top: 1px solid rgba( var( --bs-border-color-rgb, 128, 128, 128 ), 0.25 );
+}
+
+.event-list .row-head:hover
+{
+	background-color: rgba( var( --bs-secondary-rgb ), 0.12 );
+}
+
+.event-list .row-line.is-running > .row-head
 {
 	background-color: rgba( var( --bs-primary-rgb ), 0.15 );
 }
 
-.event-table tr.is-denied td
+.event-list .row-line.is-denied > .row-head
 {
 	background-color: rgba( var( --bs-warning-rgb ), 0.12 );
 }
 
-.event-table tr.is-failed td
+.event-list .row-line.is-failed > .row-head
 {
 	background-color: rgba( var( --bs-danger-rgb ), 0.12 );
 }
 
-.event-table tr.is-session td
+.event-list .row-line.is-engine > .row-head
 {
-	font-style: italic;
+	opacity: 0.55;
 }
 
-.event-table .outcome
+.event-list .row-session
+{
+	border-bottom: 1px solid var( --bs-border-color );
+}
+
+/* JSON */
+
+.event-list .row-json
+{
+	background-color: rgba( var( --bs-secondary-rgb ), 0.06 );
+}
+
+.event-list .json-title
+{
+	padding-top: 0.3rem;
+}
+
+.event-list pre.json
+{
+	margin: 0.2rem 0 0.4rem 0;
+	padding: 0.5rem 0.75rem;
+	max-height: 24rem;
+	overflow: auto;
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-size: 0.85em;
+	border: 1px solid var( --bs-border-color );
+	border-radius: 0.3rem;
+	background-color: var( --bs-body-bg );
+}
+
+.event-list .outcome
 {
 	font-size: 0.85em;
 }
 
-.event-table .outcome-running
+.event-list .outcome-running
 {
 	color: var( --bs-primary );
 }
 
-.event-table .outcome-done
+.event-list .outcome-done,
+.event-list .outcome-answer
 {
 	color: var( --bs-success );
 }
 
-.event-table .outcome-denied
+.event-list .outcome-denied,
+.event-list .outcome-aborted
 {
 	color: var( --bs-warning );
 }
 
-.event-table .outcome-failed
+.event-list .outcome-failed,
+.event-list .outcome-error,
+.event-list .outcome-refusal
 {
 	color: var( --bs-danger );
+}
+
+/* The component's host element is the flex item of the page body: it
+   must be allowed to shrink, or a long line widens the whole page. */
+
+event-list
+{
+	display: flex;
+	flex: 1 1 0;
+	min-width: 0;
+	min-height: 0;
 }

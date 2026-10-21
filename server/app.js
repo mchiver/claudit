@@ -1,7 +1,8 @@
 //=====================================================================
 // Claudit server: the Express application and its API.
 //
-//   POST /api/events          the mod posts one event or a batch
+//   POST /api/events          the mod posts one event or a batch (a
+//                             body of at most BODY_LIMIT)
 //   GET  /api/live            Server-Sent Events, ?session= to filter
 //   GET  /api/sessions        the sessions, newest first, with summaries
 //   GET  /api/sessions/<id>   one session's summary and archived events
@@ -17,7 +18,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
+const BODY_LIMIT = '8mb';
 const PUBLIC_FOLDER = path.join( path.dirname( fileURLToPath( import.meta.url ) ), '..', 'public' );
 
 
@@ -25,7 +27,7 @@ export function CreateApp( Config, Archive, Live )
 {
 	const app = express();
 	app.disable( 'x-powered-by' );
-	app.use( express.json( { limit: '1mb' } ) );
+	app.use( express.json( { limit: BODY_LIMIT } ) );
 
 
 	//-----------------------------------------------------------------

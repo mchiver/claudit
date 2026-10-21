@@ -1,10 +1,11 @@
 //=====================================================================
 // Claudit web UI: the module, the State service and the filters.
 //
-// State holds what the page shows: the theme and scale, the sessions,
-// the selected session and its events, and the live connection. The
-// components read it through their bindings or directly, and report
-// through scope events ('claudit:select').
+// State holds what the page shows: the theme and scale, whether the
+// engine's rows are shown, the sessions, the selected session and its
+// events (with a version that counts every change to them), and the
+// live connection. The components read it through their bindings or
+// directly, and report through scope events ('claudit:select').
 //=====================================================================
 
 ( function ()
@@ -13,6 +14,7 @@
 
 	const THEME_KEY = 'claudit.theme';
 	const SCALE_KEY = 'claudit.scale';
+	const ENGINE_KEY = 'claudit.engine';
 	const SESSIONS_REFRESH_MS = 15000;
 
 	angular.module( 'claudit', [] )
@@ -24,10 +26,12 @@
 		const STATE = {
 			theme: read_setting( THEME_KEY, 'dark' ),
 			scale: read_setting( SCALE_KEY, 'normal' ),
+			engine: read_setting( ENGINE_KEY, 'off' ) === 'on',
 			sessions: [],
 			selected: null,
 			session: null,
 			events: [],
+			version: 0,
 			connected: false,
 			health: null,
 			error: '',
@@ -59,6 +63,14 @@
 			STATE.scale = Scale;
 			write_setting( SCALE_KEY, Scale );
 			ApplyLook();
+		}
+
+
+		//-------------------------------------------------------------
+		function SetEngine( On )
+		{
+			STATE.engine = ( On === true );
+			write_setting( ENGINE_KEY, STATE.engine ? 'on' : 'off' );
 		}
 
 
@@ -105,6 +117,7 @@
 			STATE.selected = Id;
 			STATE.session = find_session( Id );
 			STATE.events = [];
+			STATE.version = STATE.version + 1;
 			if ( Id === null )
 			{
 				return;
@@ -117,6 +130,7 @@
 				}
 				STATE.session = Response.data.session;
 				STATE.events = Response.data.events;
+				STATE.version = STATE.version + 1;
 			} );
 		}
 
@@ -157,8 +171,11 @@
 
 
 		//-------------------------------------------------------------
-		// One live event: merged into the selected session's events by
-		// id, and counted on its session's row.
+		// One live event: a session mark, a turn, a call or a message.
+		// Counted on its session's row; added to the selected session's
+		// events, a call or message replacing the one with its id (a
+		// call arrives twice, running then finished), a turn's start
+		// and end kept as two.
 		//-------------------------------------------------------------
 		function OnLive( Event )
 		{
@@ -168,10 +185,11 @@
 				if ( Event.session === STATE.selected )
 				{
 					STATE.events.push( Event );
+					STATE.version = STATE.version + 1;
 				}
 				return;
 			}
-			if ( Event.kind !== 'call' )
+			if ( Event.kind !== 'call' && Event.kind !== 'turn' && Event.kind !== 'message' )
 			{
 				return;
 			}
@@ -184,20 +202,17 @@
 			{
 				summary.updated = Date.now();
 				summary.live = true;
-				if ( Event.outcome !== 'running' )
-				{
-					summary.counts.calls = summary.counts.calls + 1;
-					if ( summary.counts[ Event.outcome ] !== undefined )
-					{
-						summary.counts[ Event.outcome ] = summary.counts[ Event.outcome ] + 1;
-					}
-				}
+				count_on_summary( summary, Event );
 			}
 			if ( Event.session !== STATE.selected )
 			{
 				return;
 			}
-			const index = index_of_event( Event.id );
+			let index = -1;
+			if ( Event.kind !== 'turn' )
+			{
+				index = index_of_event( Event.id, Event.kind );
+			}
 			if ( index === -1 )
 			{
 				STATE.events.push( Event );
@@ -205,6 +220,29 @@
 			else
 			{
 				STATE.events[ index ] = Event;
+			}
+			STATE.version = STATE.version + 1;
+		}
+
+
+		//-------------------------------------------------------------
+		function count_on_summary( Summary, Event )
+		{
+			if ( !Summary.counts )
+			{
+				Summary.counts = { calls: 0, done: 0, denied: 0, failed: 0, turns: 0 };
+			}
+			if ( Event.kind === 'call' && Event.outcome !== 'running' )
+			{
+				Summary.counts.calls = Summary.counts.calls + 1;
+				if ( Summary.counts[ Event.outcome ] !== undefined )
+				{
+					Summary.counts[ Event.outcome ] = Summary.counts[ Event.outcome ] + 1;
+				}
+			}
+			if ( Event.kind === 'turn' && Event.phase === 'start' )
+			{
+				Summary.counts.turns = ( Summary.counts.turns || 0 ) + 1;
 			}
 		}
 
@@ -224,7 +262,7 @@
 
 
 		//-------------------------------------------------------------
-		function index_of_event( Id )
+		function index_of_event( Id, Kind )
 		{
 			if ( !Id )
 			{
@@ -232,7 +270,7 @@
 			}
 			for ( let index = 0; index < STATE.events.length; index++ )
 			{
-				if ( STATE.events[ index ].id === Id )
+				if ( STATE.events[ index ].id === Id && STATE.events[ index ].kind === Kind )
 				{
 					return index;
 				}
@@ -261,6 +299,7 @@
 			Start: Start,
 			SetTheme: SetTheme,
 			SetScale: SetScale,
+			SetEngine: SetEngine,
 			LoadHealth: LoadHealth,
 			LoadSessions: LoadSessions,
 			Select: Select,

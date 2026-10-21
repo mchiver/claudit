@@ -5,8 +5,9 @@
 // <folder>/<yyyy-mm-dd>/<session id>.jsonl, with <session id>.json
 // beside it: the session's start, end, working directory and counts,
 // for the list view. The day is the session's first event's day.
-// A call still running is not archived (it is live only); its finished
-// event is. Retention is by age of the day folders.
+// Every kind of event goes in the file (session marks, turns, calls,
+// messages) but a call still running, which is live only; its finished
+// event is archived. Retention is by age of the day folders.
 //=====================================================================
 
 import fs from 'node:fs/promises';
@@ -49,6 +50,10 @@ export class Archive
 					const text = await fs.readFile( path.join( day_folder, name ), 'utf8' );
 					const summary = JSON.parse( text );
 					summary.folder = day;
+					if ( summary.counts && summary.counts.turns === undefined )
+					{
+						summary.counts.turns = 0;
+					}
 					this.sessions.set( summary.id, summary );
 				}
 				catch ( error )
@@ -93,7 +98,7 @@ export class Archive
 				started: time,
 				updated: time,
 				ended: null,
-				counts: { calls: 0, done: 0, denied: 0, failed: 0 },
+				counts: { calls: 0, done: 0, denied: 0, failed: 0, turns: 0 },
 				folder: DayOf( time ),
 			};
 			this.sessions.set( Event.session, summary );
@@ -122,6 +127,13 @@ export class Archive
 				{
 					summary.counts[ Event.outcome ] = summary.counts[ Event.outcome ] + 1;
 				}
+			}
+		}
+		else if ( Event.kind === 'turn' )
+		{
+			if ( Event.phase === 'start' )
+			{
+				summary.counts.turns = ( summary.counts.turns || 0 ) + 1;
 			}
 		}
 		else if ( Event.kind === 'session' )

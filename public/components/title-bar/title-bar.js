@@ -1,9 +1,10 @@
 //=====================================================================
-// <title-bar>: the name, the server's state, the theme and scale
-// controls.
+// <title-bar>: the name, the server's state, the engine-rows toggle,
+// the theme and scale controls.
 //
-// Bindings: none. Reads: State (connected, health, theme, scale) and
-// sets the theme and scale through it. Reports: nothing.
+// Bindings: none. Reads: State (connected, health, engine, theme,
+// scale) and sets the engine toggle, the theme and the scale through
+// it. Reports: nothing.
 //=====================================================================
 
 ( function ()
@@ -30,6 +31,11 @@
 		controller.SetScale = function ( Scale )
 		{
 			State.SetScale( Scale );
+		};
+
+		controller.ToggleEngine = function ()
+		{
+			State.SetEngine( !controller.state.engine );
 		};
 	}
 

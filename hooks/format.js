@@ -222,3 +222,168 @@ function pad_right( Text, Width )
 {
 	return String( Text ).padEnd( Width, ' ' );
 }
+
+
+//=====================================================================
+// Rows cut to size
+//=====================================================================
+
+export const CUT_ROUNDS = 8;
+export const CUT_MARGIN = 48;
+
+
+//---------------------------------------------------------------------
+// A conversation row (or any object with text in it) cut to fit a
+// limit on the bytes of its JSON: the text of its text and thinking
+// blocks and the content of its tool results are shortened, all in
+// proportion, until the JSON fits. A limit of 0 or less cuts nothing.
+// Returns { row, truncated }: the same object when nothing was cut, a
+// cut copy otherwise, each cut string ending in a mark that says how
+// many characters went.
+//---------------------------------------------------------------------
+
+export function CutToFit( Row, Limit )
+{
+	const limit = Number( Limit );
+	if ( !Row || typeof Row !== 'object' || !( limit > 0 ) )
+	{
+		return { row: Row, truncated: false };
+	}
+	let size = ByteLength( JSON.stringify( Row ) );
+	if ( size <= limit )
+	{
+		return { row: Row, truncated: false };
+	}
+	const row = JSON.parse( JSON.stringify( Row ) );
+	let truncated = false;
+	for ( let round = 0; round < CUT_ROUNDS && size > limit; round++ )
+	{
+		const holders = cuttable_strings( row );
+		if ( holders.length === 0 )
+		{
+			break;
+		}
+		let total = 0;
+		for ( const holder of holders )
+		{
+			total = total + holder.object[ holder.key ].length;
+		}
+		const excess = ( size - limit ) + CUT_MARGIN * holders.length;
+		let keep = ( total - excess ) / total;
+		if ( keep < 0 )
+		{
+			keep = 0;
+		}
+		for ( const holder of holders )
+		{
+			const text = holder.object[ holder.key ];
+			const length = Math.floor( text.length * keep );
+			if ( length >= text.length )
+			{
+				continue;
+			}
+			holder.object[ holder.key ] = text.slice( 0, length ) + cut_mark( text.length - length );
+			truncated = true;
+		}
+		size = ByteLength( JSON.stringify( row ) );
+	}
+	return { row: row, truncated: truncated };
+}
+
+
+//---------------------------------------------------------------------
+
+function cut_mark( Count )
+{
+	return '… [claudit cut ' + Count + ' characters]';
+}
+
+
+//---------------------------------------------------------------------
+// The strings of a row that may be cut, as { object, key } pairs: a
+// top-level text, and in the content blocks the text, the thinking and
+// a tool result's content (a string, or the text of its blocks). A
+// string that is already a cut mark alone is left out.
+//---------------------------------------------------------------------
+
+function cuttable_strings( Row )
+{
+	const holders = [];
+	if ( typeof Row.text === 'string' )
+	{
+		holders.push( { object: Row, key: 'text' } );
+	}
+	if ( Array.isArray( Row.content ) )
+	{
+		for ( const block of Row.content )
+		{
+			if ( !block || typeof block !== 'object' )
+			{
+				continue;
+			}
+			if ( typeof block.text === 'string' )
+			{
+				holders.push( { object: block, key: 'text' } );
+			}
+			if ( typeof block.thinking === 'string' )
+			{
+				holders.push( { object: block, key: 'thinking' } );
+			}
+			if ( block.type === 'tool_result' )
+			{
+				if ( typeof block.content === 'string' )
+				{
+					holders.push( { object: block, key: 'content' } );
+				}
+				else if ( Array.isArray( block.content ) )
+				{
+					for ( const item of block.content )
+					{
+						if ( item && typeof item.text === 'string' )
+						{
+							holders.push( { object: item, key: 'text' } );
+						}
+					}
+				}
+			}
+		}
+	}
+	return holders.filter( function ( Holder )
+	{
+		const text = Holder.object[ Holder.key ];
+		return text.length > 0 && !text.startsWith( '… [claudit cut' );
+	} );
+}
+
+
+//---------------------------------------------------------------------
+// The bytes of a string in UTF-8, counted without an encoder so it
+// runs in the engine's sandbox as it is.
+//---------------------------------------------------------------------
+
+export function ByteLength( Text )
+{
+	let bytes = 0;
+	for ( let index = 0; index < Text.length; index++ )
+	{
+		const code = Text.charCodeAt( index );
+		if ( code < 0x80 )
+		{
+			bytes = bytes + 1;
+		}
+		else if ( code < 0x800 )
+		{
+			bytes = bytes + 2;
+		}
+		else if ( code >= 0xD800 && code <= 0xDBFF )
+		{
+			bytes = bytes + 4;
+			index = index + 1;
+		}
+		else
+		{
+			bytes = bytes + 3;
+		}
+	}
+	return bytes;
+}

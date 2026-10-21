@@ -1,12 +1,12 @@
 # Claudit
 
-A Claude Code plugin that exposes the audit trail of a session: every tool call Claude makes, with its time, description, duration and outcome. The trail shows in the session, streams to a local web page as it happens, and is archived so earlier sessions can be reviewed.
+A Claude Code plugin that exposes the audit trail of a session: every turn, every message the conversation keeps and every tool call Claude makes, timed. The trail shows in the session, streams to a local web page as it happens, and is archived so earlier sessions can be reviewed.
 
 ## What it is made of
 
-- **The mod** (`hooks/register.js`) runs inside Claude Code's plugin engine. It sees each tool call before it runs and after it finishes, shows the call in flight on the status line, puts the turn's list beneath Claude's answer, answers `/claudit`, and posts each event to the server over HTTP. It cannot listen on a port.
+- **The mod** (`hooks/register.js`) runs inside Claude Code's plugin engine. It sees each turn start and end, each row the conversation keeps (the prompt, the assistant's response, a tool result, what the engine appends), and each tool call before it runs and after it finishes. It shows the call in flight on the status line, puts the turn's list of calls beneath Claude's answer, answers `/claudit`, and posts each event to the server over HTTP. It cannot listen on a port.
 - **The server** (`server/`) is a separate Node + Express process. It receives the events, streams them to the web page as Server-Sent Events, writes the archive, prunes it, and serves the web UI. The mod starts it when nothing answers on its port, detached, so it outlives the session.
-- **The web UI** (`public/`) is AngularJS + Bootstrap: the sessions down the left, live on top and archived below; the selected session's events on the right, the running call highlighted; light and dark themes and three sizes in the title bar.
+- **The web UI** (`public/`) is AngularJS + Bootstrap: the sessions down the left, live on top and archived below; the selected session on the right as a tree of turns. A turn is one of your messages; it opens into the assistant's messages and the tool calls in order; each of those opens into its JSON (a call into its `tool_use` input and its `tool_result` row). The engine's rows (reminders, attachments, notices, thinking) are hidden until the **engine rows** button shows them, dimmed. Light and dark themes and three sizes in the title bar.
 
 ## Using it
 
@@ -41,7 +41,9 @@ npm start
 	"archive_folder": "~/.claudit/archive",
 	"retention_days": 30,
 	"live_minutes": 30,
-	"feedback": true
+	"feedback": true,
+	"messages": true,
+	"message_limit": 65536
 }
 ```
 
@@ -50,25 +52,34 @@ npm start
 - `retention_days`: day folders older than this are removed at start and once a day; 0 keeps everything.
 - `live_minutes`: a session that has not ended counts as live for this long after its last event.
 - `feedback`: false silences the block beneath the answer without stopping the stream and the archive.
+- `messages`: false stops the message rows (the conversation's JSON), leaving the turns and the calls.
+- `message_limit`: the most bytes one row's JSON may take; a larger row has its text, thinking and tool-result content cut to fit, each cut string ending in a mark, and the event marked `truncated`. 0 means no cap. The server takes a body of up to 8 MB.
 
-The server's output goes to `~/.claudit/server.log`.
+The mod reads `feedback`, `messages` and `message_limit` at session start; the server reads the rest. The server's output goes to `~/.claudit/server.log`.
 
 ## API
 
 All on the server, bound to 127.0.0.1, no auth.
 
-- `POST /api/events`: one event or an array. Each has `kind` (`call` or `session`) and `session`.
+- `POST /api/events`: one event or an array. Each has `kind` (`session`, `turn`, `call` or `message`) and `session`.
 - `GET /api/live`: Server-Sent Events, every event as it arrives; `?session=<id>` filters to one.
-- `GET /api/sessions`: the sessions, newest activity first, each with its summary and `live`.
+- `GET /api/sessions`: the sessions, newest activity first, each with its summary (`counts`: calls, done, denied, failed, turns) and `live`.
 - `GET /api/sessions/<id>`: one session's summary and archived events.
 - `GET /api/health`: `{ ok, name, version, port, archive, retention_days, sessions, clients }`.
 
-A call event: `{ kind: "call", id, session, agent, tool, summary, start, end, duration, outcome, cwd }`, with `outcome` one of `running`, `done`, `denied`, `failed`. Times are milliseconds since the epoch. A running call is streamed but not archived; its finished event is.
+The events, with times in milliseconds since the epoch (see `.definitions/event.md`):
+
+- A session mark: `{ kind: "session", phase: "start" | "end", session, cwd, time, reason? }`.
+- A turn: `{ kind: "turn", phase: "start", id, session, agent, text, time, truncated? }` when the user's message starts it, and `{ kind: "turn", phase: "end", id, session, agent, time, duration, reason, usage }` when it ends (`reason`: answer, aborted, refusal, error).
+- A call: `{ kind: "call", id, session, agent, turn, tool, summary, start, end, duration, outcome, cwd }`, `outcome` one of `running`, `done`, `denied`, `failed`. A running call is streamed but not archived; its finished event is.
+- A message: `{ kind: "message", id, session, agent, turn, door, origin, time, message, truncated? }`, where `message` is the row as the conversation keeps it (`type`, `role`, `name`, `isMeta`, `content` blocks) and `door` says how it came in (prompt, response, tool-result, attachment, notice, ...).
+
+`turn` on a call or message is the id of the turn it belongs to; the page groups by it, and puts anything without one under "(no turn recorded)".
 
 ## Development
 
 ```
-npm test                                  the server and the formatting, with node --test
+npm test                                  the mod's formatting, the turns tree, the server, with node --test
 claude plugin validate .                  what the mod hooks and calls, and what the engine would refuse
 ```
 

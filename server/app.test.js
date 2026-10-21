@@ -41,21 +41,27 @@ test( 'health answers, and events flow into sessions', async function ()
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify( [
 				{ kind: 'session', phase: 'start', session: 'abc', cwd: 'W:/x', time: now },
-				{ kind: 'call', id: 'c1', session: 'abc', tool: 'Bash', summary: 'ls', start: now + 10, end: now + 20, duration: 10, outcome: 'done' },
+				{ kind: 'turn', phase: 'start', id: 't1', session: 'abc', agent: null, text: 'list the files', time: now + 5 },
+				{ kind: 'message', id: 'm1', session: 'abc', turn: 't1', door: 'response', time: now + 8, message: { type: 'assistant', role: 'assistant', content: [ { type: 'tool_use', id: 'c1', name: 'Bash', input: { command: 'ls' } } ] } },
+				{ kind: 'call', id: 'c1', session: 'abc', turn: 't1', tool: 'Bash', summary: 'ls', start: now + 10, end: now + 20, duration: 10, outcome: 'done' },
+				{ kind: 'turn', phase: 'end', id: 't1', session: 'abc', agent: null, time: now + 30, duration: 25, reason: 'answer', usage: null },
 			] ),
 		} );
 		assert.equal( posted.status, 202 );
-		assert.deepEqual( await posted.json(), { accepted: 2, refused: [] } );
+		assert.deepEqual( await posted.json(), { accepted: 5, refused: [] } );
 
 		const list = await ( await fetch( started.url + '/api/sessions' ) ).json();
 		assert.equal( list.sessions.length, 1 );
 		assert.equal( list.sessions[ 0 ].id, 'abc' );
 		assert.equal( list.sessions[ 0 ].live, true );
 		assert.equal( list.sessions[ 0 ].counts.calls, 1 );
+		assert.equal( list.sessions[ 0 ].counts.turns, 1 );
 
 		const one = await ( await fetch( started.url + '/api/sessions/abc' ) ).json();
 		assert.equal( one.session.id, 'abc' );
-		assert.equal( one.events.length, 2 );
+		assert.equal( one.events.length, 5 );
+		assert.deepEqual( one.events.map( function ( Event ) { return Event.kind; } ), [ 'session', 'turn', 'message', 'call', 'turn' ] );
+		assert.equal( one.events[ 2 ].message.content[ 0 ].name, 'Bash' );
 
 		const missing = await fetch( started.url + '/api/sessions/nope' );
 		assert.equal( missing.status, 404 );

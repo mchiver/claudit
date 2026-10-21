@@ -36,7 +36,7 @@ test( 'Append: a session grows a summary and a JSON Lines file; running calls ar
 	assert.equal( summary.started, start );
 	assert.equal( summary.ended, start + 5000 );
 	assert.equal( summary.updated, start + 5000 );
-	assert.deepEqual( summary.counts, { calls: 2, done: 1, denied: 1, failed: 0 } );
+	assert.deepEqual( summary.counts, { calls: 2, done: 1, denied: 1, failed: 0, turns: 0 } );
 	assert.equal( summary.folder, DayOf( start ) );
 
 	const events = await archive.Events( 's1' );
@@ -102,5 +102,49 @@ test( 'Append refuses an event without a session', async function ()
 	const archive = new Archive( folder );
 	await archive.Open();
 	await assert.rejects( archive.Append( { kind: 'call' } ), /needs a session/ );
+	await fs.rm( folder, { recursive: true, force: true } );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'Append archives turns and messages, and counts the turns', async function ()
+{
+	const folder = await temporary_folder();
+	const archive = new Archive( folder );
+	await archive.Open();
+	const start = new Date( 2026, 9, 21, 11, 0, 0 ).getTime();
+	await archive.Append( { kind: 'session', phase: 'start', session: 's2', cwd: 'W:/y', time: start } );
+	await archive.Append( { kind: 'turn', phase: 'start', id: 't1', session: 's2', agent: null, text: 'hello', time: start + 10 } );
+	await archive.Append( { kind: 'message', id: 'm1', session: 's2', turn: 't1', door: 'prompt', time: start + 11, message: { type: 'user', role: 'user', content: [ { type: 'text', text: 'hello' } ] } } );
+	await archive.Append( { kind: 'message', id: 'm2', session: 's2', turn: 't1', door: 'response', time: start + 500, message: { type: 'assistant', role: 'assistant', content: [ { type: 'text', text: 'hi' } ] } } );
+	await archive.Append( { kind: 'turn', phase: 'end', id: 't1', session: 's2', agent: null, time: start + 900, duration: 890, reason: 'answer', usage: null } );
+	await archive.Append( { kind: 'turn', phase: 'start', id: 't2', session: 's2', agent: null, text: 'again', time: start + 2000 } );
+
+	const summary = archive.Session( 's2' );
+	assert.equal( summary.counts.turns, 2 );
+	assert.equal( summary.counts.calls, 0 );
+	const events = await archive.Events( 's2' );
+	assert.deepEqual( events.map( function ( Event ) { return Event.kind + ':' + ( Event.phase || Event.door ); } ),
+		[ 'session:start', 'turn:start', 'message:prompt', 'message:response', 'turn:end', 'turn:start' ] );
+	assert.deepEqual( events[ 2 ].message.content, [ { type: 'text', text: 'hello' } ] );
+
+	const reopened = new Archive( folder );
+	await reopened.Open();
+	assert.equal( reopened.Session( 's2' ).counts.turns, 2 );
+
+	await fs.rm( folder, { recursive: true, force: true } );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'Open gives an older summary without a turn count a count of 0', async function ()
+{
+	const folder = await temporary_folder();
+	const day = DayOf( Date.now() );
+	await fs.mkdir( path.join( folder, day ), { recursive: true } );
+	await fs.writeFile( path.join( folder, day, 'old.json' ), JSON.stringify( { id: 'old', cwd: '', started: 1, updated: 1, ended: null, counts: { calls: 3, done: 3, denied: 0, failed: 0 } } ), 'utf8' );
+	const archive = new Archive( folder );
+	await archive.Open();
+	assert.equal( archive.Session( 'old' ).counts.turns, 0 );
 	await fs.rm( folder, { recursive: true, force: true } );
 } );
