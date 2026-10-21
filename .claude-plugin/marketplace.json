@@ -1,0 +1,14 @@
+{
+	"name": "mchiver",
+	"description": "Plugins by mchiver: Claudit, the audit trail of a Claude Code session.",
+	"owner": {
+		"name": "mchiver"
+	},
+	"plugins": [
+		{
+			"name": "claudit",
+			"source": "./",
+			"description": "The audit trail of a Claude Code session: every turn, message and tool call, timed, shown in the session, streamed to a local web page and archived."
+		}
+	]
+}

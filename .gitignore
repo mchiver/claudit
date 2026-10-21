@@ -5,3 +5,9 @@ node_modules/
 # Written by the Claude Code plugin engine when it loads the mod (editor type hints)
 .claude-plugin/types/
 /tsconfig.json
+
+# The project's working record: how it is made, not part of the plugin
+.consensus/
+.definitions/
+.guides/
+/CLAUDE.md

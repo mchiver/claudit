@@ -22,14 +22,13 @@ export class Live
 
 
 	//-----------------------------------------------------------------
-	// Turns a response into a stream and keeps it until the client
-	// goes away.
+	// Turns a node:http response into a stream and keeps it until the
+	// client goes away.
 	//-----------------------------------------------------------------
 
 	Attach( Request, Response, SessionFilter )
 	{
-		Response.status( 200 );
-		Response.set( {
+		Response.writeHead( 200, {
 			'Content-Type': 'text/event-stream',
 			'Cache-Control': 'no-cache',
 			'Connection': 'keep-alive',

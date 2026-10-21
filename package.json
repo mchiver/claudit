@@ -1,9 +1,12 @@
 {
 	"name": "claudit",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "A Claude Code plugin that exposes the audit trail of a session: every tool call, timed, streamed live and archived.",
 	"type": "module",
 	"main": "server/server.js",
+	"engines": {
+		"node": ">=20"
+	},
 	"scripts": {
 		"start": "node server/server.js",
 		"test": "node --test"
@@ -12,8 +15,5 @@
 		"type": "git",
 		"url": "https://github.com/mchiver/claudit.git"
 	},
-	"license": "MIT",
-	"dependencies": {
-		"express": "^4.21.2"
-	}
+	"license": "MIT"
 }
