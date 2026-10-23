@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Claudit</title>
+	<meta name="description" content="Claudit is a Claude Code plugin that records the audit trail of a session: every turn, every message and every tool call, timed, on a local web page.">
+	<link rel="icon" href="favicon.ico">
+	<link rel="stylesheet" href="docs.css">
+</head>
+<body>
+<div class="wrap">
+
+	<header class="top">
+		<img src="images/mchiver.png" alt="">
+		<div>
+			<p class="name">Claudit</p>
+			<p class="tagline">The audit trail of a Claude Code session, on a page of your own.</p>
+		</div>
+		<nav>
+			<a href="index.html" class="is-here">Guide</a>
+			<a href="privacy.html">Privacy</a>
+			<a href="terms.html">Terms</a>
+			<a href="https://github.com/mchiver/claudit">GitHub</a>
+			<a href="https://github.com/mchiver/claudit/releases">Releases</a>
+		</nav>
+	</header>
+
+	<h1>What Claudit does</h1>
+	<p class="lead">Claudit is a Claude Code plugin. It watches a session from the inside and keeps the trail: every turn, every message the conversation keeps, and every tool call Claude makes, each one timed. The trail shows on the session's status line as it happens, streams to a web page on your own machine, and is archived so earlier sessions can be reviewed.</p>
+	<p>Everything stays on your computer. The plugin talks to a small server bound to <code>127.0.0.1</code>, the server writes the archive under your home folder, and the page reads from that server. Nothing is sent anywhere else. The <a href="privacy.html">privacy policy</a> says the same in full.</p>
+
+	<figure>
+		<img src="images/overview.jpg" alt="The Claudit web page: a list of sessions down the left, the selected session on the right as a tree of turns, the newest turn open and showing its tool calls.">
+		<figcaption>A live session. The turn in flight is at the top, open, with its tool calls so far; the earlier turns are closed beneath it.</figcaption>
+	</figure>
+
+	<h2>How it works</h2>
+	<p>Claudit is three parts that fit together.</p>
+	<div class="parts">
+		<div class="part">
+			<h3>The mod</h3>
+			<p>A hooks module that runs inside Claude Code's plugin engine. It sees each turn start and end, each row the conversation keeps, and each tool call before it runs and after it finishes. It shows the call in flight on the status line, answers the <code>/claudit</code> command, and posts each event to the server over HTTP.</p>
+		</div>
+		<div class="part">
+			<h3>The server</h3>
+			<p>A separate Node process with no dependencies, listening on <code>127.0.0.1:3600</code>. It receives the events, streams them to the page as they arrive, writes the archive, prunes it after a retention period, and serves the page. The mod starts it when nothing answers on the port, detached, so it outlives the session.</p>
+		</div>
+		<div class="part">
+			<h3>The page</h3>
+			<p>A web page at <code>http://127.0.0.1:3600</code>. Sessions down the left, live on top and archived below; the selected session on the right as a tree of turns. A turn opens into the assistant's messages and the tool calls in order; a call opens into its input and its result.</p>
+		</div>
+	</div>
+
+	<h2>Installing it</h2>
+	<p>At the prompt of a Claude Code terminal session:</p>
+	<pre><code>/plugin install claudit --marketplace mchiver/claudit</code></pre>
+	<p>From a shell:</p>
+	<pre><code>claude plugin install claudit --marketplace mchiver/claudit</code></pre>
+	<p>In the desktop app, where <code>/plugin</code> does not run: click + next to the prompt box, then Plugins, Add marketplace with <code>mchiver/claudit</code>, then Add plugin.</p>
+	<p>Answer <code>y</code> to add the marketplace, then pick a scope. The mod runs from then on, and in every later session under the user scope. The server needs Node 20 or later on the PATH and nothing else. A later version comes with:</p>
+	<pre><code>claude plugin update claudit</code></pre>
+
+	<h2>Using it</h2>
+	<p>Recording is on by default. Three forms of one command control it in the session:</p>
+	<pre><code>/claudit status       whether it is on, its version, the server's address and version, the counts
+/claudit off          stop recording (kept across sessions)
+/claudit on           record again</code></pre>
+	<p>While Claude works, the status line shows the tool in flight, how long it has run and what it is doing, with the count of calls so far this turn. Open <a href="http://127.0.0.1:3600">http://127.0.0.1:3600</a> in a browser once a session has started the server, and the same session is there as it happens.</p>
+
+	<h3>Reading a turn</h3>
+	<p>A turn is one of your messages. It opens into the assistant's messages and the tool calls in order, each row with its time, the tool, a one-line summary, how long it took and how it ended: done, denied or failed. In a live session the latest turn stays open until the next one starts; a turn you open or close by hand keeps that choice.</p>
+	<p>A call opens into its input, one field per line with a command or a file's content shown as it is, and its result rendered as markdown. An error result is tinted red. An assistant message opens into its text rendered the same way.</p>
+
+	<figure>
+		<img src="images/call-detail.jpg" alt="A Bash call opened: its command and description as fields, and its result rendered as markdown below.">
+		<figcaption>A call opened. The input fields are above, the result rendered as markdown below.</figcaption>
+	</figure>
+
+	<p>The <code>{}</code> button on any row shows its raw JSON instead: the tool_use block and the tool_result message exactly as the conversation holds them. Press it again to go back.</p>
+
+	<figure>
+		<img src="images/raw-json.jpg" alt="The same call showing its raw JSON: the tool_use block and the tool_result message.">
+		<figcaption>The same call as raw JSON.</figcaption>
+	</figure>
+
+	<h3>The buttons</h3>
+	<ul>
+		<li><strong>engine rows</strong> shows the rows the engine appends to the conversation: reminders, attachments, notices, thinking. They are hidden by default, and shown dimmed when on; each opens into its JSON.</li>
+		<li><strong>newest first</strong> flips the order of the turns, so the turn in flight is at the top. The rows inside a turn always run earliest to latest. The choice is kept in the browser.</li>
+		<li><strong>latest turn</strong> closes every turn but the latest and scrolls to it.</li>
+		<li>The <strong>gear</strong> opens the look: ten palettes (System follows the operating system), three sizes and three margin widths, kept in the browser.</li>
+	</ul>
+
+	<figure>
+		<img src="images/engine-rows.jpg" alt="A turn with the engine rows shown dimmed between the tool calls: reminders, thinking and a notice.">
+		<figcaption>Engine rows on: the reminders and the thinking sit dimmed between the calls.</figcaption>
+	</figure>
+
+	<figure>
+		<img src="images/look.jpg" alt="The look popover under the gear: theme, size and margins.">
+		<figcaption>The look popover: theme, size and margins.</figcaption>
+	</figure>
+
+	<figure>
+		<img src="images/dark.jpg" alt="The same page in the Dark palette.">
+		<figcaption>The Dark palette. Five light and five dark palettes are built in.</figcaption>
+	</figure>
+
+	<h3>Earlier sessions</h3>
+	<p>Sessions that have ended are listed under Archived, newest first, each with its folder, its start time and its counts. Pick one and its turns are there as they were recorded, every turn closed until you open it. The session list can be dragged wider or narrower, and collapsed to a rail.</p>
+
+	<figure>
+		<img src="images/archived.jpg" alt="An archived session: its turns listed closed, with session started and session ended marks between them.">
+		<figcaption>An archived session, with its session marks between the turns.</figcaption>
+	</figure>
+
+	<h2>Configuration</h2>
+	<p><code>~/.claudit/config.json</code>, every key optional:</p>
+	<pre><code>{
+	"port": 3600,
+	"archive_folder": "~/.claudit/archive",
+	"retention_days": 30,
+	"live_minutes": 30,
+	"messages": true,
+	"message_limit": 65536
+}</code></pre>
+	<dl>
+		<dt>port</dt>
+		<dd>Where the server listens, on 127.0.0.1. The plugin option <code>port</code> in Claude Code's plugin configuration overrides it when above 0.</dd>
+		<dt>archive_folder</dt>
+		<dd>One folder per day, holding a JSON Lines file of events per session with a summary beside it.</dd>
+		<dt>retention_days</dt>
+		<dd>Day folders older than this are removed at start and once a day. 0 keeps everything.</dd>
+		<dt>live_minutes</dt>
+		<dd>A session that has not ended counts as live for this long after its last event.</dd>
+		<dt>messages</dt>
+		<dd>false stops the message rows (the conversation's JSON), leaving the turns and the calls.</dd>
+		<dt>message_limit</dt>
+		<dd>The most bytes one row's JSON may take. A larger row has its text, thinking and tool-result content cut to fit, and the event marked truncated. 0 means no cap.</dd>
+	</dl>
+	<p>The server's own output goes to <code>~/.claudit/server.log</code>.</p>
+
+	<h2>Where the data lives</h2>
+	<p>The archive is a folder of plain files under your home folder, one day per folder. Delete a folder, or the whole archive, and that is gone. The retention setting does the same on a schedule. The page keeps only your look and layout choices, in the browser's local storage. There are no accounts, no telemetry and no remote service: see the <a href="privacy.html">privacy policy</a> and the <a href="terms.html">terms</a>.</p>
+
+	<footer>
+		<span>Claudit is open source under the MIT license.</span>
+		<a href="https://github.com/mchiver/claudit">github.com/mchiver/claudit</a>
+		<a href="privacy.html">Privacy</a>
+		<a href="terms.html">Terms</a>
+	</footer>
+
+</div>
+</body>
+</html>

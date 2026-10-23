@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Claudit privacy policy</title>
+	<meta name="description" content="What Claudit records, where it keeps it, and what never leaves your computer.">
+	<link rel="icon" href="favicon.ico">
+	<link rel="stylesheet" href="docs.css">
+</head>
+<body>
+<div class="wrap">
+
+	<header class="top">
+		<img src="images/mchiver.png" alt="">
+		<div>
+			<p class="name">Claudit</p>
+			<p class="tagline">The audit trail of a Claude Code session, on a page of your own.</p>
+		</div>
+		<nav>
+			<a href="index.html">Guide</a>
+			<a href="privacy.html" class="is-here">Privacy</a>
+			<a href="terms.html">Terms</a>
+			<a href="https://github.com/mchiver/claudit">GitHub</a>
+			<a href="https://github.com/mchiver/claudit/releases">Releases</a>
+		</nav>
+	</header>
+
+	<h1>Privacy policy</h1>
+	<p class="dated">Effective 23 October 2026. Applies to Claudit, the Claude Code plugin published by mchiver at <a href="https://github.com/mchiver/claudit">github.com/mchiver/claudit</a>, and to this documentation site.</p>
+
+	<p class="lead">Claudit records what happens in your Claude Code sessions and keeps the record on your own computer. It has no server of ours, no account, no telemetry and no analytics. We never receive your data, because nothing in Claudit sends it to us or to anyone else.</p>
+
+	<h2>What Claudit records</h2>
+	<p>While a session runs with Claudit on, the plugin records events about that session:</p>
+	<ul>
+		<li>Session marks: when a session starts and ends, its id, and the working folder it ran in.</li>
+		<li>Turns: the text of each message you send, when it started, when it ended and how.</li>
+		<li>Tool calls: the tool's name, a one-line summary of what it did, when it started and finished, and whether it was done, denied or failed.</li>
+		<li>Messages: the rows the conversation keeps, as Claude Code holds them. That includes your prompts, the assistant's responses and its thinking, tool inputs and tool results, and the rows the engine appends, such as reminders and attachments.</li>
+	</ul>
+	<p>A tool input or result can hold whatever the session touched: the contents of files, the output of commands, and anything that appeared in them. Claudit does not inspect or filter that content beyond cutting an oversized row to fit the configured limit.</p>
+
+	<h2>Where it goes, and where it does not</h2>
+	<ul>
+		<li>The plugin posts each event over HTTP to a server that Claudit itself runs on your computer. The server listens on the loopback address <code>127.0.0.1</code> only, so it is reachable from your computer and from nowhere else.</li>
+		<li>The server writes the events to an archive folder under your home folder, <code>~/.claudit/archive</code> unless you configure another, as plain files, one folder per day. It removes day folders older than the retention period, 30 days unless you configure otherwise.</li>
+		<li>The web page reads from that server, on your computer, in your browser.</li>
+		<li>Nothing is transmitted to mchiver, to Anthropic through Claudit, or to any other party. Claudit makes no network connection except to its own server on loopback.</li>
+	</ul>
+
+	<h2>Third parties</h2>
+	<p>Two third parties are involved, neither of which receives any session data from Claudit:</p>
+	<ul>
+		<li><strong>cdnjs (Cloudflare).</strong> The web page loads four open-source libraries, AngularJS, Bootstrap, marked and DOMPurify, from <code>cdnjs.cloudflare.com</code>. When you open the page, your browser requests those files from Cloudflare, which sees that request as it would any web request. Cloudflare's own privacy policy governs it. Your session data is not part of that request.</li>
+		<li><strong>GitHub.</strong> Installing or updating the plugin fetches it from GitHub. GitHub's privacy policy governs that.</li>
+	</ul>
+	<p>Claudit runs inside Claude Code. What Claude Code itself sends to Anthropic is governed by Anthropic's terms and privacy policy, and is not changed by Claudit.</p>
+
+	<h2>What the browser keeps</h2>
+	<p>The web page keeps your look and layout choices, such as the theme, the size, the order of the turns and the width of the session list, in the browser's local storage, on your computer. It keeps nothing else and sets no cookies.</p>
+
+	<h2>Your control</h2>
+	<ul>
+		<li><code>/claudit off</code> in a session stops recording; the choice is kept across sessions until <code>/claudit on</code>.</li>
+		<li>The <code>messages</code> setting turned off stops the message rows, leaving only the turns and the calls, which carry no file contents or command output.</li>
+		<li>The <code>retention_days</code> setting decides how long the archive is kept. Deleting the archive folder, or any day in it, removes that record at once.</li>
+		<li>Uninstalling the plugin stops everything. The archive folder stays until you delete it.</li>
+	</ul>
+	<p>Because the archive may hold sensitive material from your sessions, treat it as you would any private file under your home folder.</p>
+
+	<h2>Children</h2>
+	<p>Claudit is a developer tool. It is not directed at people under 18, and it collects nothing from anyone.</p>
+
+	<h2>Changes</h2>
+	<p>When this policy changes, the new version is published here with a new effective date. Changes that matter are noted in the release notes on GitHub.</p>
+
+	<h2>Contact</h2>
+	<p>Questions about this policy go to the project's issue tracker at <a href="https://github.com/mchiver/claudit/issues">github.com/mchiver/claudit/issues</a>.</p>
+
+	<footer>
+		<span>Claudit is open source under the MIT license.</span>
+		<a href="https://github.com/mchiver/claudit">github.com/mchiver/claudit</a>
+		<a href="index.html">Guide</a>
+		<a href="terms.html">Terms</a>
+	</footer>
+
+</div>
+</body>
+</html>

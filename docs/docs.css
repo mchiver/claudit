@@ -1,0 +1,283 @@
+/*=====================================================================
+  The Claudit docs: one stylesheet for the guide, the privacy policy
+  and the terms. Light and dark follow the operating system.
+=====================================================================*/
+
+:root
+{
+	--page-bg: #ffffff;
+	--panel-bg: #f6f7f9;
+	--border: #dfe3e8;
+	--text: #1f2328;
+	--dim: #6b7380;
+	--accent: #0d6efd;
+	--mono: ui-monospace, Consolas, "Cascadia Mono", Menlo, monospace;
+}
+
+@media ( prefers-color-scheme: dark )
+{
+	:root
+	{
+		--page-bg: #1b1f24;
+		--panel-bg: #22272e;
+		--border: #373e47;
+		--text: #d6dde6;
+		--dim: #8b949e;
+		--accent: #58a6ff;
+	}
+}
+
+*
+{
+	box-sizing: border-box;
+}
+
+body
+{
+	margin: 0;
+	background: var( --page-bg );
+	color: var( --text );
+	font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	font-size: 1.05rem;
+	line-height: 1.55;
+}
+
+a
+{
+	color: var( --accent );
+}
+
+.wrap
+{
+	max-width: 62rem;
+	margin: 0 auto;
+	padding: 0 1.25rem 4rem;
+}
+
+/*---------------------------------------------------------------------
+  The header: the mark, the name and the nav.
+---------------------------------------------------------------------*/
+
+.top
+{
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 1.25rem 0;
+	border-bottom: 1px solid var( --border );
+	flex-wrap: wrap;
+}
+
+.top img
+{
+	width: 3.5rem;
+	height: 3.5rem;
+	border-radius: 0.6rem;
+}
+
+.top .name
+{
+	font-size: 1.6rem;
+	font-weight: 700;
+	margin: 0;
+}
+
+.top .tagline
+{
+	color: var( --dim );
+	margin: 0;
+}
+
+.top nav
+{
+	margin-left: auto;
+	display: flex;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.top nav a
+{
+	text-decoration: none;
+}
+
+.top nav a.is-here
+{
+	font-weight: 600;
+	color: var( --text );
+}
+
+/*---------------------------------------------------------------------
+  The text.
+---------------------------------------------------------------------*/
+
+h1
+{
+	font-size: 2rem;
+	margin: 2rem 0 0.5rem;
+}
+
+h2
+{
+	font-size: 1.45rem;
+	margin: 2.5rem 0 0.75rem;
+	padding-bottom: 0.25rem;
+	border-bottom: 1px solid var( --border );
+}
+
+h3
+{
+	font-size: 1.15rem;
+	margin: 1.75rem 0 0.5rem;
+}
+
+p.lead
+{
+	font-size: 1.2rem;
+	color: var( --dim );
+}
+
+p.dated
+{
+	color: var( --dim );
+	font-size: 0.95rem;
+}
+
+code
+{
+	font-family: var( --mono );
+	font-size: 0.92em;
+	background: var( --panel-bg );
+	border: 1px solid var( --border );
+	border-radius: 0.25rem;
+	padding: 0 0.3em;
+}
+
+pre
+{
+	font-family: var( --mono );
+	font-size: 0.92rem;
+	background: var( --panel-bg );
+	border: 1px solid var( --border );
+	border-radius: 0.4rem;
+	padding: 0.75rem 1rem;
+	overflow-x: auto;
+	line-height: 1.45;
+}
+
+pre code
+{
+	background: none;
+	border: 0;
+	padding: 0;
+	font-size: inherit;
+}
+
+ul, ol
+{
+	padding-left: 1.4rem;
+}
+
+li
+{
+	margin: 0.3rem 0;
+}
+
+dl
+{
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 0.4rem 1.25rem;
+}
+
+dt
+{
+	font-family: var( --mono );
+	font-size: 0.92rem;
+}
+
+dd
+{
+	margin: 0;
+}
+
+/*---------------------------------------------------------------------
+  Screenshots.
+---------------------------------------------------------------------*/
+
+figure
+{
+	margin: 1.5rem 0;
+}
+
+figure img
+{
+	display: block;
+	width: 100%;
+	height: auto;
+	border: 1px solid var( --border );
+	border-radius: 0.5rem;
+	box-shadow: 0 8px 28px rgba( 0, 0, 0, 0.16 );
+}
+
+figcaption
+{
+	margin-top: 0.6rem;
+	color: var( --dim );
+	font-size: 0.95rem;
+}
+
+.parts
+{
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 16rem, 1fr ) );
+	gap: 1rem;
+	margin: 1.25rem 0;
+}
+
+.part
+{
+	background: var( --panel-bg );
+	border: 1px solid var( --border );
+	border-radius: 0.5rem;
+	padding: 1rem 1.1rem;
+}
+
+.part h3
+{
+	margin-top: 0;
+}
+
+.part p
+{
+	margin-bottom: 0;
+}
+
+/*---------------------------------------------------------------------
+  The footer.
+---------------------------------------------------------------------*/
+
+footer
+{
+	margin-top: 4rem;
+	padding-top: 1rem;
+	border-top: 1px solid var( --border );
+	color: var( --dim );
+	font-size: 0.95rem;
+	display: flex;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+@media ( max-width: 640px )
+{
+	dl
+	{
+		grid-template-columns: 1fr;
+	}
+
+	.top nav
+	{
+		margin-left: 0;
+	}
+}
