@@ -1,11 +1,124 @@
 /*=====================================================================
-  Claudit web UI: page-wide styles. Theme comes from Bootstrap's
-  data-bs-theme on <html>; scale from a class on <body>.
+  Claudit web UI: page-wide styles. The look comes from theme.js on the
+  root element: data-bs-theme (light or dark) carries Bootstrap's own
+  colours, data-theme the palette (its tokens below, copied from
+  Consensus), --scale the size and --text-width the margins.
 =====================================================================*/
+
+:root
+{
+	--bs-body-bg: var( --page-bg );
+	--bs-body-color: var( --text );
+	--bs-border-color: var( --border );
+	--bs-tertiary-bg: var( --panel-bg );
+	--bs-secondary-bg: var( --panel-bg );
+
+	--scale: 1;
+	--text-width: none;
+	--sessions-width: 18rem;
+
+	--page-bg: #ffffff;
+	--panel-bg: #f6f7f9;
+	--border: #dfe3e8;
+	--text: #1f2328;
+	--muted: #6b7380;
+	--accent: #0d6efd;
+}
+
+[data-bs-theme="dark"]
+{
+	--bs-body-bg: var( --page-bg );
+	--bs-body-color: var( --text );
+	--bs-border-color: var( --border );
+	--bs-tertiary-bg: var( --panel-bg );
+	--bs-secondary-bg: var( --panel-bg );
+
+	--page-bg: #1b1f24;
+	--panel-bg: #22272e;
+	--border: #373e47;
+	--text: #e6edf3;
+	--muted: #9aa4b2;
+}
+
+/* The palettes: each sets the page's tokens; data-bs-theme still carries Bootstrap's own. */
+
+[data-theme="sepia"]
+{
+	--page-bg: #f4ecd8;
+	--panel-bg: #ebe1c8;
+	--border: #d8cbab;
+	--text: #3b2f1e;
+	--muted: #7a6a4f;
+	--accent: #8a5a1e;
+}
+
+[data-theme="paper"]
+{
+	--page-bg: #ffffff;
+	--panel-bg: #f0f0f0;
+	--border: #2b2b2b;
+	--text: #000000;
+	--muted: #333333;
+	--accent: #0000cc;
+}
+
+[data-theme="solarized-light"]
+{
+	--page-bg: #fdf6e3;
+	--panel-bg: #eee8d5;
+	--border: #d6cfb8;
+	--text: #586e75;
+	--muted: #93a1a1;
+	--accent: #268bd2;
+}
+
+[data-theme="slate"]
+{
+	--page-bg: #1e2530;
+	--panel-bg: #27303d;
+	--border: #3b4654;
+	--text: #dbe3ee;
+	--muted: #95a3b5;
+	--accent: #6cb6ff;
+}
+
+[data-theme="solarized-dark"]
+{
+	--page-bg: #002b36;
+	--panel-bg: #073642;
+	--border: #0f4a57;
+	--text: #93a1a1;
+	--muted: #657b83;
+	--accent: #268bd2;
+}
+
+[data-theme="nord"]
+{
+	--page-bg: #2e3440;
+	--panel-bg: #3b4252;
+	--border: #4c566a;
+	--text: #eceff4;
+	--muted: #a3adc2;
+	--accent: #88c0d0;
+}
+
+[data-theme="midnight"]
+{
+	--page-bg: #000000;
+	--panel-bg: #0d0d0d;
+	--border: #2a2a2a;
+	--text: #e6e6e6;
+	--muted: #9a9a9a;
+	--accent: #4da3ff;
+}
+
+/* The page */
 
 html, body
 {
 	height: 100%;
+	margin: 0;
+	font-size: calc( 15px * var( --scale ) );
 }
 
 body
@@ -16,19 +129,9 @@ body
 	font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-body.scale-small
+a
 {
-	font-size: 0.85rem;
-}
-
-body.scale-normal
-{
-	font-size: 1rem;
-}
-
-body.scale-large
-{
-	font-size: 1.2rem;
+	color: var( --accent );
 }
 
 .mono
@@ -40,4 +143,18 @@ body.scale-large
 .dim
 {
 	opacity: 0.6;
+}
+
+/* An inline SVG symbol from index.html, drawn in the text's colour. */
+
+.icon
+{
+	width: 1em;
+	height: 1em;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	vertical-align: -0.15em;
 }

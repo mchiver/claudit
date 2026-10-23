@@ -2,7 +2,8 @@
 	<title-bar></title-bar>
 	<div ng-if="$ctrl.state.error" class="alert alert-warning rounded-0 mb-0 py-1 px-3 small">{{ $ctrl.state.error }}</div>
 	<div class="claudit-body d-flex flex-grow-1">
-		<session-list sessions="$ctrl.state.sessions" selected="$ctrl.state.selected"></session-list>
+		<session-list sessions="$ctrl.state.sessions" selected="$ctrl.state.selected" collapsed="$ctrl.state.sessions_hidden"></session-list>
+		<div class="splitter" ng-if="!$ctrl.state.sessions_hidden" ng-mousedown="$ctrl.StartDrag( $event )" title="Drag to size the session list"></div>
 		<event-list events="$ctrl.state.events" session="$ctrl.state.session" version="$ctrl.state.version" engine="$ctrl.state.engine"></event-list>
 	</div>
 </div>

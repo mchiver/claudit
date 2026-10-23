@@ -104,3 +104,28 @@ test( 'BuildTurns: a finished call replaces its running one; a turn end without 
 	assert.equal( TURNS.FirstLine( '\n\n  second  \nthird' ), 'second' );
 	assert.equal( TURNS.FirstLine( 'z'.repeat( 400 ) ).length, 160 );
 } );
+
+//---------------------------------------------------------------------
+test( 'InputFields: a string as text, a number or boolean plain, an object as JSON', function ()
+{
+	const fields = TURNS.InputFields( { type: 'tool_use', name: 'Bash', input: { command: 'ls\npwd', timeout: 5000, run_in_background: false, nothing: null, options: { a: 1 } } } );
+	assert.deepEqual( fields, [
+		{ name: 'command', kind: 'text', value: 'ls\npwd' },
+		{ name: 'timeout', kind: 'plain', value: '5000' },
+		{ name: 'run_in_background', kind: 'plain', value: 'false' },
+		{ name: 'nothing', kind: 'plain', value: 'null' },
+		{ name: 'options', kind: 'json', value: '{\n  "a": 1\n}' },
+	] );
+	assert.deepEqual( TURNS.InputFields( { type: 'tool_use', name: 'X' } ), [] );
+	assert.deepEqual( TURNS.InputFields( null ), [] );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'ResultText: a content string, text blocks joined, an image named, is_error flagged', function ()
+{
+	assert.deepEqual( TURNS.ResultText( { type: 'tool_result', content: 'a b' } ), { text: 'a b', error: false } );
+	assert.deepEqual( TURNS.ResultText( { type: 'tool_result', content: [ { type: 'text', text: 'one' }, { type: 'image', source: {} }, { type: 'text', text: 'two' } ], is_error: true } ), { text: 'one\n\n(image)\n\ntwo', error: true } );
+	assert.deepEqual( TURNS.ResultText( { type: 'tool_result' } ), { text: '', error: false } );
+	assert.deepEqual( TURNS.ResultText( undefined ), { text: '', error: false } );
+} );

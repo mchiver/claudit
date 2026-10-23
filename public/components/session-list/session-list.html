@@ -1,26 +1,36 @@
-<aside class="session-list border-end">
-	<div class="session-group-title small text-uppercase dim px-3 pt-2 pb-1">Live</div>
-	<div ng-if="$ctrl.Live().length === 0" class="px-3 pb-2 small dim">No live session.</div>
-	<a href="" class="session-row d-block px-3 py-2" ng-repeat="summary in $ctrl.Live() track by summary.id"
-		ng-class="{ 'is-selected': summary.id === $ctrl.selected }" ng-click="$ctrl.Select( summary )">
-		<div class="d-flex align-items-center">
-			<span class="live-dot me-2"></span>
-			<span class="mono">{{ summary.id | shortId }}</span>
-			<span class="ms-auto small dim">{{ summary.updated | clock }}</span>
-		</div>
-		<div class="small text-truncate" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</div>
-		<div class="small dim"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
-	</a>
+<aside class="session-list border-end" ng-class="{ 'is-collapsed': $ctrl.collapsed }">
+	<div class="session-head d-flex align-items-center px-2 py-1 border-bottom">
+		<span ng-if="!$ctrl.collapsed" class="small text-uppercase dim ps-1 flex-grow-1">Sessions</span>
+		<button type="button" class="btn btn-sm btn-link collapse-button" ng-click="$ctrl.Collapse()" title="{{ $ctrl.collapsed ? 'Show the session list' : 'Hide the session list' }}">
+			<svg class="icon" ng-if="!$ctrl.collapsed"><use href="#i-chevron-left"></use></svg>
+			<svg class="icon" ng-if="$ctrl.collapsed"><use href="#i-chevron-right"></use></svg>
+		</button>
+	</div>
 
-	<div class="session-group-title small text-uppercase dim px-3 pt-3 pb-1">Archived</div>
-	<div ng-if="$ctrl.Archived().length === 0" class="px-3 pb-2 small dim">Nothing archived yet.</div>
-	<a href="" class="session-row d-block px-3 py-2" ng-repeat="summary in $ctrl.Archived() track by summary.id"
-		ng-class="{ 'is-selected': summary.id === $ctrl.selected }" ng-click="$ctrl.Select( summary )">
-		<div class="d-flex align-items-center">
-			<span class="mono">{{ summary.id | shortId }}</span>
-			<span class="ms-auto small dim">{{ summary.started | day }} {{ summary.started | clock }}</span>
-		</div>
-		<div class="small text-truncate" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</div>
-		<div class="small dim"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
-	</a>
+	<div class="session-scroll" ng-if="!$ctrl.collapsed">
+		<div class="session-group-title small text-uppercase dim px-3 pt-2 pb-1">Live</div>
+		<div ng-if="$ctrl.Live().length === 0" class="px-3 pb-2 small dim">No live session.</div>
+		<a href="" class="session-row d-block px-3 py-2" ng-repeat="summary in $ctrl.Live() track by summary.id"
+			ng-class="{ 'is-selected': summary.id === $ctrl.selected }" ng-click="$ctrl.Select( summary )">
+			<div class="d-flex align-items-center">
+				<span class="live-dot me-2"></span>
+				<span class="mono">{{ summary.id | shortId }}</span>
+				<span class="ms-auto small dim">{{ summary.updated | clock }}</span>
+			</div>
+			<div class="small text-truncate" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</div>
+			<div class="small dim"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
+		</a>
+
+		<div class="session-group-title small text-uppercase dim px-3 pt-3 pb-1">Archived</div>
+		<div ng-if="$ctrl.Archived().length === 0" class="px-3 pb-2 small dim">Nothing archived yet.</div>
+		<a href="" class="session-row d-block px-3 py-2" ng-repeat="summary in $ctrl.Archived() track by summary.id"
+			ng-class="{ 'is-selected': summary.id === $ctrl.selected }" ng-click="$ctrl.Select( summary )">
+			<div class="d-flex align-items-center">
+				<span class="mono">{{ summary.id | shortId }}</span>
+				<span class="ms-auto small dim">{{ summary.started | day }} {{ summary.started | clock }}</span>
+			</div>
+			<div class="small text-truncate" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</div>
+			<div class="small dim"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
+		</a>
+	</div>
 </aside>

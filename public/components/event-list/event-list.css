@@ -223,3 +223,157 @@ event-list
 	min-width: 0;
 	min-height: 0;
 }
+
+/* The content's width: the Margins setting (--text-width from theme.js;
+   none lets the rows take the pane). */
+
+.event-list .event-content
+{
+	max-width: var( --text-width );
+	margin: 0 auto;
+}
+
+/* The formatted detail of a call: its input as fields, its result as
+   markdown; the {} button lit while the raw JSON is shown. */
+
+.event-list .json-button.is-on
+{
+	opacity: 1;
+	color: var( --accent );
+}
+
+.event-list .row-detail .field
+{
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 0.15rem 0;
+}
+
+.event-list .row-detail .field-name
+{
+	flex: 0 0 10rem;
+	padding-top: 0.2rem;
+	word-break: break-all;
+}
+
+.event-list .row-detail .field-plain
+{
+	padding-top: 0.2rem;
+}
+
+.event-list .row-detail pre.field-text
+{
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	padding: 0.35rem 0.6rem;
+	max-height: 24rem;
+	overflow: auto;
+	white-space: pre-wrap;
+	word-break: break-word;
+	border: 1px solid var( --bs-border-color );
+	border-radius: 0.3rem;
+	background-color: var( --bs-body-bg );
+}
+
+/* Markdown, in both themes: the panel colour behind code, bordered
+   tables, headings scaled down. */
+
+.event-list .markdown
+{
+	margin: 0.2rem 0 0.4rem 0;
+	padding: 0.5rem 0.75rem;
+	max-height: 32rem;
+	overflow: auto;
+	border: 1px solid var( --bs-border-color );
+	border-radius: 0.3rem;
+	background-color: var( --bs-body-bg );
+	font-size: 0.95em;
+}
+
+.event-list .markdown.is-error
+{
+	border-color: var( --bs-danger );
+	background-color: rgba( var( --bs-danger-rgb ), 0.06 );
+}
+
+.event-list .markdown > :last-child
+{
+	margin-bottom: 0;
+}
+
+.event-list .markdown h1, .event-list .markdown h2, .event-list .markdown h3,
+.event-list .markdown h4, .event-list .markdown h5, .event-list .markdown h6
+{
+	font-size: 1.05em;
+	font-weight: 600;
+	margin: 0.6em 0 0.3em 0;
+}
+
+.event-list .markdown h1 { font-size: 1.25em; }
+.event-list .markdown h2 { font-size: 1.15em; }
+
+.event-list .markdown p
+{
+	margin: 0 0 0.5em 0;
+}
+
+.event-list .markdown pre
+{
+	margin: 0 0 0.5em 0;
+	padding: 0.5rem 0.75rem;
+	overflow: auto;
+	white-space: pre-wrap;
+	word-break: break-word;
+	border-radius: 0.3rem;
+	background-color: var( --panel-bg );
+	font-family: ui-monospace, Consolas, "Cascadia Mono", Menlo, monospace;
+	font-size: 0.9em;
+}
+
+.event-list .markdown code
+{
+	font-family: ui-monospace, Consolas, "Cascadia Mono", Menlo, monospace;
+	font-size: 0.9em;
+	background-color: var( --panel-bg );
+	padding: 0.05em 0.3em;
+	border-radius: 0.2rem;
+	color: inherit;
+}
+
+.event-list .markdown pre code
+{
+	padding: 0;
+	background: none;
+}
+
+.event-list .markdown table
+{
+	border-collapse: collapse;
+	margin: 0 0 0.5em 0;
+}
+
+.event-list .markdown th, .event-list .markdown td
+{
+	border: 1px solid var( --bs-border-color );
+	padding: 0.2em 0.6em;
+}
+
+.event-list .markdown th
+{
+	background-color: var( --panel-bg );
+}
+
+.event-list .markdown blockquote
+{
+	margin: 0 0 0.5em 0;
+	padding-left: 0.75em;
+	border-left: 3px solid var( --bs-border-color );
+	color: var( --muted );
+}
+
+.event-list .markdown img
+{
+	max-width: 100%;
+}

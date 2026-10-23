@@ -1,13 +1,45 @@
 /*=====================================================================
-  <session-list>: a scrolling column of session rows; the live ones
-  carry a pulsing dot.
+  <session-list>: a column of session rows under a header, as wide as
+  --sessions-width (dragged through the splitter); collapsed, a 2rem
+  rail holding the chevron alone. The live rows carry a pulsing dot.
 =====================================================================*/
 
 .session-list
 {
-	width: 18rem;
+	width: var( --sessions-width );
 	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.session-list.is-collapsed
+{
+	width: 2rem;
+}
+
+.session-list .session-head
+{
+	flex-shrink: 0;
+}
+
+.session-list .collapse-button
+{
+	padding: 0 0.3em;
+	line-height: 1;
+	color: inherit;
+	opacity: 0.6;
+}
+
+.session-list .collapse-button:hover
+{
+	opacity: 1;
+}
+
+.session-list .session-scroll
+{
 	overflow-y: auto;
+	min-height: 0;
 }
 
 @media ( max-width: 768px )
@@ -18,6 +50,11 @@
 		max-height: 40vh;
 		border-right: 0 !important;
 		border-bottom: 1px solid var( --bs-border-color );
+	}
+
+	.session-list.is-collapsed
+	{
+		width: auto;
 	}
 }
 

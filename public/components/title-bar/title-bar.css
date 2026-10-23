@@ -1,11 +1,12 @@
 /*=====================================================================
   <title-bar>: one row; a dot that is green while the live stream is
-  connected.
+  connected; the look popover under its button at the bar's right end.
 =====================================================================*/
 
 .title-bar
 {
 	flex-shrink: 0;
+	position: relative;
 }
 
 .title-bar .status-dot
@@ -22,4 +23,24 @@
 .title-bar .status-dot.is-on
 {
 	background-color: var( --bs-success );
+}
+
+.title-bar .look-button .icon
+{
+	width: 1.1em;
+	height: 1.1em;
+}
+
+.title-bar .look-popover
+{
+	position: absolute;
+	top: 100%;
+	right: 0.5rem;
+	z-index: 1050;
+	margin-top: 2px;
+	padding: 0.6rem 0.75rem;
+	background: var( --panel-bg );
+	border: 1px solid var( --border );
+	border-radius: 0.3rem;
+	box-shadow: 0 6px 20px rgba( 0, 0, 0, 0.18 );
 }

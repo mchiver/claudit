@@ -8,6 +8,7 @@
 	<div class="event-head px-3 py-2 border-bottom small dim" ng-if="!$ctrl.session">Pick a session.</div>
 
 	<div class="event-scroll flex-grow-1">
+		<div class="event-content">
 		<div ng-repeat="node in $ctrl.nodes track by node.key">
 
 			<div ng-if="node.kind === 'session'" class="row-session d-flex align-items-center px-3 py-1 small dim fst-italic">
@@ -46,8 +47,11 @@
 							<span class="col-outcome ms-2">
 								<span ng-if="row.kind === 'call'" class="outcome outcome-{{ row.call.outcome }}">{{ row.call.outcome }}</span>
 							</span>
+							<button type="button" class="btn btn-sm btn-link json-button ms-1" ng-if="row.kind !== 'engine'" ng-class="{ 'is-on': $ctrl.IsRaw( row.key ) }"
+								ng-click="$event.stopPropagation(); $ctrl.ShowRaw( row.key )" title="{{ $ctrl.IsRaw( row.key ) ? 'The formatted detail' : 'The raw JSON' }}">{{ '{' }}}</button>
 						</div>
-						<div ng-if="$ctrl.IsShown( row.key )" class="row-json px-3 pb-2">
+
+						<div ng-if="$ctrl.IsShown( row.key ) && ( row.kind === 'engine' || $ctrl.IsRaw( row.key ) )" class="row-json px-3 pb-2">
 							<div ng-if="row.kind === 'call'">
 								<div class="json-title small dim">{{ row.input ? 'input (tool_use)' : 'call' }}<span ng-if="row.input.event.truncated"> · truncated to fit</span></div>
 								<pre class="json mono">{{ ( row.input ? row.input.block : row.call ) | json:2 }}</pre>
@@ -60,6 +64,24 @@
 								<pre class="json mono">{{ row.event.message | json:2 }}</pre>
 							</div>
 						</div>
+
+						<div ng-if="$ctrl.IsShown( row.key ) && row.kind === 'call' && !$ctrl.IsRaw( row.key )" class="row-json row-detail px-3 pb-2">
+							<div class="json-title small dim">input<span ng-if="row.input.event.truncated"> · truncated to fit</span></div>
+							<div ng-if="!row.input" class="small dim">No input row recorded.</div>
+							<div class="field" ng-repeat="field in $ctrl.Fields( row ) track by field.name">
+								<span class="field-name mono dim">{{ field.name }}</span>
+								<span ng-if="field.kind === 'plain'" class="field-plain mono">{{ field.value }}</span>
+								<pre ng-if="field.kind !== 'plain'" class="field-text mono">{{ field.value }}</pre>
+							</div>
+							<div class="json-title small dim" ng-if="row.result">result<span ng-if="$ctrl.Result( row ).error" class="text-danger"> · error</span><span ng-if="row.result.event.truncated"> · truncated to fit</span></div>
+							<div ng-if="row.result" class="markdown" ng-class="{ 'is-error': $ctrl.Result( row ).error }" ng-bind-html="$ctrl.Result( row ).text | markdown"></div>
+							<div class="small dim" ng-if="!row.result && row.call.outcome !== 'running'">No result row recorded.</div>
+						</div>
+
+						<div ng-if="$ctrl.IsShown( row.key ) && row.kind === 'text' && !$ctrl.IsRaw( row.key )" class="row-json row-detail px-3 pb-2">
+							<div class="json-title small dim">assistant<span ng-if="row.event.truncated"> · truncated to fit</span></div>
+							<div class="markdown" ng-bind-html="row.block.text | markdown"></div>
+						</div>
 					</div>
 					<div ng-if="$ctrl.Hidden( node ) > 0" class="small dim px-3 py-1 row-hidden">{{ $ctrl.Hidden( node ) }} engine rows hidden.</div>
 					<div ng-if="node.rows.length === 0" class="small dim px-3 py-1">No messages yet.</div>
@@ -68,5 +90,6 @@
 
 		</div>
 		<div ng-if="$ctrl.session && $ctrl.nodes.length === 0" class="small dim px-3 py-3">No events yet.</div>
+		</div>
 	</div>
 </section>

@@ -212,35 +212,6 @@ export function BlockRows( Calls )
 // Empty when the turn made no call.
 //---------------------------------------------------------------------
 
-export function FormatBlock( Calls, SessionId, EndedAt )
-{
-	if ( !Calls || Calls.length === 0 )
-	{
-		return '';
-	}
-	const lines = [ BlockHeader( Calls, SessionId, EndedAt ) ];
-	for ( const row of BlockRows( Calls ) )
-	{
-		let line = row.clock;
-		line = line + '  ' + pad_left( row.duration, 7 );
-		line = line + '  ' + pad_right( row.tool, 10 );
-		line = line + '  ' + row.summary;
-		if ( row.flagged )
-		{
-			line = line + '  [' + row.outcome + ']';
-		}
-		if ( row.agent )
-		{
-			line = line + '  (agent ' + row.agent + ')';
-		}
-		lines.push( line );
-	}
-	return lines.join( '\n' );
-}
-
-
-//---------------------------------------------------------------------
-
 function short_id( Id )
 {
 	if ( typeof Id !== 'string' || Id === '' )
@@ -447,4 +418,52 @@ export function PadLeft( Text, Width )
 export function PadRight( Text, Width )
 {
 	return pad_right( Text, Width );
+}
+
+
+//=====================================================================
+// The drawn block's columns and the command's words
+//=====================================================================
+
+export const TOOL_WIDTH_MAX = 16;
+
+
+//---------------------------------------------------------------------
+// The columns of the drawn block, as widths in cells, so the rows'
+// cells line up: Time 8, Duration 7, Tool the longest tool name in the
+// rows (at least 4, at most TOOL_WIDTH_MAX), Outcome 6, and Agent 8
+// when any row came from a subagent (else 0: no column). The summary
+// takes what is left.
+//---------------------------------------------------------------------
+
+export function BlockColumns( Rows )
+{
+	let tool = 4;
+	let agent = 0;
+	for ( const row of Rows || [] )
+	{
+		tool = Math.max( tool, String( row.tool || '' ).length );
+		if ( row.agent )
+		{
+			agent = 8;
+		}
+	}
+	tool = Math.min( tool, TOOL_WIDTH_MAX );
+	return { time: 8, duration: 7, tool: tool, outcome: 6, agent: agent };
+}
+
+
+//---------------------------------------------------------------------
+// The words of /claudit <args>: { word, value }, both lower case,
+// "summary on" giving word "summary" and value "on"; nothing gives
+// two empty strings.
+//---------------------------------------------------------------------
+
+export function ParseCommand( Args )
+{
+	const words = String( Args || '' ).trim().toLowerCase().split( /\s+/ );
+	return {
+		word: words[ 0 ] || '',
+		value: words[ 1 ] || '',
+	};
 }

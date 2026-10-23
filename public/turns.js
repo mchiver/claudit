@@ -6,7 +6,9 @@
 // of top-level nodes, each a session mark or a turn, a turn holding
 // its rows (the assistant's text, the tool calls with their input and
 // result, the engine's rows) in time order. Events without a turn fall
-// into a synthetic turn so nothing is lost.
+// into a synthetic turn so nothing is lost. InputFields( Block ) and
+// ResultText( Block ) pick what <event-list> shows of a tool_use
+// block's input and a tool_result block's content.
 //
 // Loaded by the page as a plain script and by the tests through node:
 // it attaches itself to globalThis.ClauditTurns.
@@ -416,6 +418,74 @@
 
 
 	//-----------------------------------------------------------------
+	// A tool_use block's input as fields to show: one per key, { name,
+	// kind, value }, kind 'text' for a string (shown as it is, newlines
+	// kept), 'plain' for a number, boolean or null, 'json' for an
+	// object or array (indented JSON).
+	//-----------------------------------------------------------------
+	function InputFields( Block )
+	{
+		const input = ( Block && Block.input && typeof Block.input === 'object' ) ? Block.input : {};
+		const fields = [];
+		for ( const name of Object.keys( input ) )
+		{
+			const value = input[ name ];
+			if ( typeof value === 'string' )
+			{
+				fields.push( { name: name, kind: 'text', value: value } );
+			}
+			else if ( value === null || typeof value !== 'object' )
+			{
+				fields.push( { name: name, kind: 'plain', value: String( value ) } );
+			}
+			else
+			{
+				fields.push( { name: name, kind: 'json', value: JSON.stringify( value, null, 2 ) } );
+			}
+		}
+		return fields;
+	}
+
+
+	//-----------------------------------------------------------------
+	// A tool_result block's content as { text, error }: the content
+	// string, or the text of its text blocks joined by blank lines, an
+	// image block giving the line "(image)"; error when the block says
+	// is_error.
+	//-----------------------------------------------------------------
+	function ResultText( Block )
+	{
+		const block = ( Block && typeof Block === 'object' ) ? Block : {};
+		let text = '';
+		if ( typeof block.content === 'string' )
+		{
+			text = block.content;
+		}
+		else if ( Array.isArray( block.content ) )
+		{
+			const parts = [];
+			for ( const part of block.content )
+			{
+				if ( !part || typeof part !== 'object' )
+				{
+					continue;
+				}
+				if ( typeof part.text === 'string' )
+				{
+					parts.push( part.text );
+				}
+				else if ( part.type === 'image' )
+				{
+					parts.push( '(image)' );
+				}
+			}
+			text = parts.join( '\n\n' );
+		}
+		return { text: text, error: block.is_error === true };
+	}
+
+
+	//-----------------------------------------------------------------
 	function time_of( Event )
 	{
 		if ( typeof Event.time === 'number' )
@@ -434,6 +504,8 @@
 		BuildTurns: BuildTurns,
 		FirstLine: first_line,
 		TextOf: text_of,
+		InputFields: InputFields,
+		ResultText: ResultText,
 	};
 
 } )();

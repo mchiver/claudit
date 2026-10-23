@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Summarise, OutcomeOf, FormatClock, FormatDuration, FormatStatus, FormatBlock, BlockHeader, BlockRows, PadLeft, PadRight, CutToFit, ByteLength, SUMMARY_LENGTH } from './format.js';
+import { Summarise, OutcomeOf, FormatClock, FormatDuration, FormatStatus, BlockHeader, BlockRows, PadLeft, PadRight, CutToFit, ByteLength, BlockColumns, ParseCommand, SUMMARY_LENGTH, TOOL_WIDTH_MAX } from './format.js';
 
 
 //---------------------------------------------------------------------
@@ -76,25 +76,6 @@ test( 'FormatStatus names the call in flight and the count', function ()
 
 
 //---------------------------------------------------------------------
-test( 'FormatBlock: a header and one line per call; empty with no calls', function ()
-{
-	assert.equal( FormatBlock( [], 'abc' ), '' );
-	const start = new Date( 2026, 9, 21, 9, 30, 0 ).getTime();
-	const calls = [
-		{ tool: 'Bash', summary: 'List files', start: start, duration: 1200, outcome: 'done', agent: null },
-		{ tool: 'Edit', summary: 'a.md', start: start + 2000, duration: 300, outcome: 'denied', agent: 'agent-12345678' },
-	];
-	const block = FormatBlock( calls, 'session-abcdefgh-rest' );
-	const lines = block.split( '\n' );
-	assert.equal( lines.length, 3 );
-	assert.equal( lines[ 0 ], 'claudit · session session- · 2 tool calls' );
-	assert.ok( lines[ 1 ].startsWith( '09:30:00     1.2s  Bash        List files' ) );
-	assert.ok( lines[ 2 ].includes( '[denied]' ) );
-	assert.ok( lines[ 2 ].includes( '(agent agent-12)' ) );
-} );
-
-
-//---------------------------------------------------------------------
 test( 'ByteLength counts UTF-8 bytes', function ()
 {
 	assert.equal( ByteLength( 'abc' ), 3 );
@@ -158,7 +139,6 @@ test( 'BlockHeader names the session, the end time when given, and the count', f
 	const ended = new Date( 2026, 9, 21, 12, 1, 5 ).getTime();
 	assert.equal( BlockHeader( [ {} ], 'session-abcdefgh-rest' ), 'claudit · session session- · 1 tool call' );
 	assert.equal( BlockHeader( [ {}, {}, {} ], '0d9fcdd9-6baf', ended ), 'claudit · session 0d9fcdd9 · 12:01:05 · 3 tool calls' );
-	assert.ok( FormatBlock( [ { tool: 'Read', summary: 'a', start: ended, duration: 5, outcome: 'done' } ], '0d9fcdd9-6baf', ended ).startsWith( 'claudit · session 0d9fcdd9 · 12:01:05 · 1 tool call' ) );
 } );
 
 
@@ -176,4 +156,25 @@ test( 'BlockRows gives one row of strings per call, flagging denied and failed',
 	assert.deepEqual( BlockRows( [] ), [] );
 	assert.equal( PadLeft( '1.2s', 7 ), '   1.2s' );
 	assert.equal( PadRight( 'Bash', 6 ), 'Bash  ' );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'BlockColumns: fixed widths, the tool column fitting the longest name, the agent column only with a subagent', function ()
+{
+	assert.deepEqual( BlockColumns( [] ), { time: 8, duration: 7, tool: 4, outcome: 6, agent: 0 } );
+	assert.deepEqual( BlockColumns( [ { tool: 'Bash', agent: '' }, { tool: 'WebSearch', agent: '' } ] ), { time: 8, duration: 7, tool: 9, outcome: 6, agent: 0 } );
+	assert.deepEqual( BlockColumns( [ { tool: 'Read', agent: 'agent-12' } ] ), { time: 8, duration: 7, tool: 4, outcome: 6, agent: 8 } );
+	assert.equal( BlockColumns( [ { tool: 'mcp__claude-in-chrome__read_page' } ] ).tool, TOOL_WIDTH_MAX );
+} );
+
+
+//---------------------------------------------------------------------
+test( 'ParseCommand: a word and a value, lower case, empty when absent', function ()
+{
+	assert.deepEqual( ParseCommand( 'summary on' ), { word: 'summary', value: 'on' } );
+	assert.deepEqual( ParseCommand( '  Summary   OFF ' ), { word: 'summary', value: 'off' } );
+	assert.deepEqual( ParseCommand( 'status' ), { word: 'status', value: '' } );
+	assert.deepEqual( ParseCommand( '' ), { word: '', value: '' } );
+	assert.deepEqual( ParseCommand( undefined ), { word: '', value: '' } );
 } );

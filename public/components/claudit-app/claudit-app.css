@@ -1,6 +1,7 @@
 /*=====================================================================
   <claudit-app>: the page fills the window; the body row holds the
-  session list and the event list side by side.
+  session list, the splitter and the event list side by side. On a
+  narrow window they stack and the splitter goes.
 =====================================================================*/
 
 .claudit-app
@@ -13,10 +14,28 @@
 	min-height: 0;
 }
 
+.claudit-body .splitter
+{
+	flex: 0 0 6px;
+	cursor: col-resize;
+	background-color: transparent;
+	border-right: 1px solid var( --bs-border-color );
+}
+
+.claudit-body .splitter:hover
+{
+	background-color: var( --bs-tertiary-bg );
+}
+
 @media ( max-width: 768px )
 {
 	.claudit-body
 	{
 		flex-direction: column;
+	}
+
+	.claudit-body .splitter
+	{
+		display: none;
 	}
 }

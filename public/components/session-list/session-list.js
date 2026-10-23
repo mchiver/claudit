@@ -1,10 +1,12 @@
 //=====================================================================
 // <session-list>: the sessions down the left, live ones on top,
-// archived ones below.
+// archived ones below, under a header row whose chevron collapses the
+// list to a rail.
 //
 // Bindings: sessions (the summaries from /api/sessions), selected (the
-// selected session's id). Reports: 'claudit:select' with a session id
-// when one is picked.
+// selected session's id), collapsed (whether the list is a rail).
+// Reports: 'claudit:select' with a session id when one is picked;
+// 'claudit:collapse' with true or false when the chevron is pressed.
 //=====================================================================
 
 ( function ()
@@ -16,6 +18,7 @@
 		bindings: {
 			sessions: '<',
 			selected: '<',
+			collapsed: '<',
 		},
 		controller: [ '$scope', SessionListController ],
 	} );
@@ -38,6 +41,11 @@
 		controller.Select = function ( Summary )
 		{
 			$scope.$emit( 'claudit:select', Summary.id );
+		};
+
+		controller.Collapse = function ()
+		{
+			$scope.$emit( 'claudit:collapse', !controller.collapsed );
 		};
 	}
 

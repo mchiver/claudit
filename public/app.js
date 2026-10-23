@@ -1,20 +1,24 @@
 //=====================================================================
 // Claudit web UI: the module, the State service and the filters.
 //
-// State holds what the page shows: the theme and scale, whether the
-// engine's rows are shown, the sessions, the selected session and its
-// events (with a version that counts every change to them), and the
-// live connection. The components read it through their bindings or
-// directly, and report through scope events ('claudit:select').
+// State holds what the page shows: whether the engine's rows are
+// shown, the session list's width and whether it is collapsed, the
+// sessions, the selected session and its events (with a version that
+// counts every change to them), and the live connection. The look
+// (palette, size, margins) is theme.js's. The components read State
+// through their bindings or directly, and report through scope events
+// ('claudit:select', 'claudit:collapse'). The markdown filter renders
+// text with marked and cleans it with DOMPurify.
 //=====================================================================
 
 ( function ()
 {
 	'use strict';
 
-	const THEME_KEY = 'claudit.theme';
-	const SCALE_KEY = 'claudit.scale';
 	const ENGINE_KEY = 'claudit.engine';
+	const SESSIONS_WIDTH_KEY = 'claudit.sessions_width';
+	const SESSIONS_HIDDEN_KEY = 'claudit.sessions_hidden';
+	const SESSIONS_MIN_REM = 12;
 	const SESSIONS_REFRESH_MS = 15000;
 
 	angular.module( 'claudit', [] )
@@ -24,9 +28,9 @@
 	.factory( 'State', [ '$http', '$rootScope', '$interval', function ( $http, $rootScope, $interval )
 	{
 		const STATE = {
-			theme: read_setting( THEME_KEY, 'dark' ),
-			scale: read_setting( SCALE_KEY, 'normal' ),
 			engine: read_setting( ENGINE_KEY, 'off' ) === 'on',
+			sessions_width: read_setting( SESSIONS_WIDTH_KEY, '' ),
+			sessions_hidden: read_setting( SESSIONS_HIDDEN_KEY, 'off' ) === 'on',
 			sessions: [],
 			selected: null,
 			session: null,
@@ -40,29 +44,40 @@
 
 
 		//-------------------------------------------------------------
-		function ApplyLook()
+		// The session list's width, as --sessions-width on the root;
+		// nothing is set until the reader drags, so the stylesheet's
+		// default holds.
+		//-------------------------------------------------------------
+		function ApplySessionsWidth()
 		{
-			document.documentElement.setAttribute( 'data-bs-theme', STATE.theme );
-			document.body.classList.remove( 'scale-small', 'scale-normal', 'scale-large' );
-			document.body.classList.add( 'scale-' + STATE.scale );
+			if ( STATE.sessions_width !== '' )
+			{
+				document.documentElement.style.setProperty( '--sessions-width', STATE.sessions_width );
+			}
 		}
 
 
 		//-------------------------------------------------------------
-		function SetTheme( Theme )
+		// A dragged width in pixels, held between SESSIONS_MIN_REM and
+		// half the window.
+		//-------------------------------------------------------------
+		function SetSessionsWidth( Px )
 		{
-			STATE.theme = Theme;
-			write_setting( THEME_KEY, Theme );
-			ApplyLook();
+			const rem = parseFloat( window.getComputedStyle( document.documentElement ).fontSize ) || 16;
+			const least = SESSIONS_MIN_REM * rem;
+			const most = window.innerWidth / 2;
+			const width = Math.round( Math.max( least, Math.min( most, Px ) ) );
+			STATE.sessions_width = width + 'px';
+			write_setting( SESSIONS_WIDTH_KEY, STATE.sessions_width );
+			ApplySessionsWidth();
 		}
 
 
 		//-------------------------------------------------------------
-		function SetScale( Scale )
+		function SetSessionsHidden( On )
 		{
-			STATE.scale = Scale;
-			write_setting( SCALE_KEY, Scale );
-			ApplyLook();
+			STATE.sessions_hidden = ( On === true );
+			write_setting( SESSIONS_HIDDEN_KEY, STATE.sessions_hidden ? 'on' : 'off' );
 		}
 
 
@@ -282,7 +297,7 @@
 		//-------------------------------------------------------------
 		function Start()
 		{
-			ApplyLook();
+			ApplySessionsWidth();
 			LoadHealth();
 			LoadSessions();
 			Connect();
@@ -297,12 +312,50 @@
 		return {
 			state: STATE,
 			Start: Start,
-			SetTheme: SetTheme,
-			SetScale: SetScale,
 			SetEngine: SetEngine,
+			SetSessionsWidth: SetSessionsWidth,
+			SetSessionsHidden: SetSessionsHidden,
 			LoadHealth: LoadHealth,
 			LoadSessions: LoadSessions,
 			Select: Select,
+		};
+	} ] )
+
+
+	//-----------------------------------------------------------------
+	// Text rendered as markdown by marked, cleaned by DOMPurify, trusted
+	// for ng-bind-html. Without marked (its script not loaded) the text
+	// is shown as it is, escaped, in a pre.
+	//-----------------------------------------------------------------
+	.filter( 'markdown', [ '$sce', function ( $sce )
+	{
+		return function ( Text )
+		{
+			if ( typeof Text !== 'string' || Text === '' )
+			{
+				return '';
+			}
+			let html = '';
+			if ( window.marked && typeof window.marked.parse === 'function' )
+			{
+				try
+				{
+					html = window.marked.parse( Text, { breaks: true, gfm: true } );
+				}
+				catch ( error )
+				{
+					html = '';
+				}
+			}
+			if ( html === '' )
+			{
+				html = '<pre>' + escape_html( Text ) + '</pre>';
+			}
+			if ( window.DOMPurify && typeof window.DOMPurify.sanitize === 'function' )
+			{
+				html = window.DOMPurify.sanitize( html );
+			}
+			return $sce.trustAsHtml( html );
 		};
 	} ] )
 
@@ -403,6 +456,16 @@
 		{
 			return Fallback;
 		}
+	}
+
+
+	//-----------------------------------------------------------------
+	function escape_html( Text )
+	{
+		return String( Text )
+			.replace( /&/g, '&amp;' )
+			.replace( /</g, '&lt;' )
+			.replace( />/g, '&gt;' );
 	}
 
 

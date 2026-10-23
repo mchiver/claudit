@@ -1,8 +1,10 @@
 //=====================================================================
 // <event-list>: the selected session as a tree of turns. Each turn (a
 // user message) opens into the assistant's messages and the tool calls
-// in order; each of those opens into its JSON. Session marks sit
-// between the turns. The engine's rows (reminders, attachments,
+// in order; a call opens into its input as fields and its result as
+// markdown, an assistant row into its text as markdown, an engine row
+// into its JSON; the {} button swaps a row's detail for its raw JSON.
+// Session marks sit between the turns. The engine's rows (reminders, attachments,
 // notices, thinking) are shown dimmed when the engine binding is on.
 //
 // Bindings: events (the session's events, archived then live), session
@@ -40,6 +42,8 @@
 		controller.nodes = [];
 		controller.open = {};
 		controller.shown = {};
+		controller.raw = {};
+		let details = {};
 
 
 		//-------------------------------------------------------------
@@ -51,6 +55,7 @@
 				built_session = session_id;
 				controller.open = {};
 				controller.shown = {};
+				controller.raw = {};
 				built_version = -1;
 			}
 			if ( controller.version !== built_version )
@@ -64,6 +69,7 @@
 		function rebuild()
 		{
 			built_version = controller.version;
+			details = {};
 			controller.nodes = globalThis.ClauditTurns.BuildTurns( controller.events || [] );
 			let size = 0;
 			for ( const node of controller.nodes )
@@ -118,6 +124,52 @@
 		controller.Show = function ( Key )
 		{
 			controller.shown[ Key ] = !controller.IsShown( Key );
+		};
+
+
+		//-------------------------------------------------------------
+		controller.IsRaw = function ( Key )
+		{
+			return controller.raw[ Key ] === true;
+		};
+
+
+		//-------------------------------------------------------------
+		// The {} button: shows the row's raw JSON in place of its
+		// detail, opening the row when it was closed.
+		//-------------------------------------------------------------
+		controller.ShowRaw = function ( Key )
+		{
+			controller.raw[ Key ] = !controller.IsRaw( Key );
+			controller.shown[ Key ] = true;
+		};
+
+
+		//-------------------------------------------------------------
+		// A call's input fields and result text, computed once per
+		// build of the tree (the same objects each digest, so ng-repeat
+		// and ng-bind-html see nothing new).
+		//-------------------------------------------------------------
+		controller.Fields = function ( Row )
+		{
+			const key = 'fields-' + Row.key;
+			if ( details[ key ] === undefined )
+			{
+				details[ key ] = globalThis.ClauditTurns.InputFields( Row.input ? Row.input.block : null );
+			}
+			return details[ key ];
+		};
+
+
+		//-------------------------------------------------------------
+		controller.Result = function ( Row )
+		{
+			const key = 'result-' + Row.key;
+			if ( details[ key ] === undefined )
+			{
+				details[ key ] = globalThis.ClauditTurns.ResultText( Row.result ? Row.result.block : null );
+			}
+			return details[ key ];
 		};
 
 

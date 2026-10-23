@@ -8,12 +8,9 @@
 	</span>
 	<button type="button" class="btn btn-sm btn-outline-secondary me-2" ng-class="{ active: $ctrl.state.engine }"
 		ng-click="$ctrl.ToggleEngine()" title="Show the rows the engine appends: reminders, attachments, notices, thinking">engine rows</button>
-	<div class="btn-group btn-group-sm me-2" role="group" aria-label="Scale">
-		<button type="button" class="btn btn-outline-secondary" ng-repeat="scale in $ctrl.scales"
-			ng-class="{ active: $ctrl.state.scale === scale }" ng-click="$ctrl.SetScale( scale )">{{ scale }}</button>
+	<button type="button" class="btn btn-sm btn-outline-secondary look-button" ng-class="{ active: $ctrl.look_open }"
+		ng-click="$ctrl.ToggleLook( $event )" title="The theme, the size and the margins"><svg class="icon"><use href="#i-gear"></use></svg></button>
+	<div class="look-popover" ng-if="$ctrl.look_open">
+		<look-controls></look-controls>
 	</div>
-	<button type="button" class="btn btn-sm btn-outline-secondary" ng-click="$ctrl.ToggleTheme()">
-		<span ng-if="$ctrl.state.theme === 'dark'">light</span>
-		<span ng-if="$ctrl.state.theme !== 'dark'">dark</span>
-	</button>
 </nav>
