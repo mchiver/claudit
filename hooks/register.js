@@ -12,9 +12,9 @@
 // when its health route does not answer.
 //
 // Reads: ~/.claudit/config.json (port, messages, message_limit), the
-// plugin option "port" (overrides the file when above 0), and the
-// engine store key "enabled" (the /claudit switch, kept across
-// sessions).
+// plugin option "port" (overrides the file when above 0), the engine
+// store key "enabled" (the /claudit switch, kept across sessions), and
+// its own plugin.json for the version /claudit status reports.
 //=====================================================================
 
 import { Summarise, OutcomeOf, FormatStatus, ParseCommand, CutToFit } from './format.js';
@@ -38,6 +38,8 @@ const STATE = {
 	port: DEFAULT_PORT,
 	server: 'http://127.0.0.1:' + DEFAULT_PORT,
 	server_ok: false,
+	version: '',
+	server_version: '',
 	session: '',
 	cwd: '',
 	calls: [],
@@ -250,6 +252,7 @@ async function start_session( $, e, options )
 		STATE.enabled = ( stored === true );
 	}
 	await load_config( $, options );
+	await load_version( $ );
 
 	if ( !STATE.enabled )
 	{
@@ -306,6 +309,26 @@ async function load_config( $, options )
 		limit = DEFAULT_MESSAGE_LIMIT;
 	}
 	STATE.message_limit = limit;
+}
+
+
+//---------------------------------------------------------------------
+// The mod's own version, from its plugin.json; empty when unreadable.
+//---------------------------------------------------------------------
+
+async function load_version( $ )
+{
+	STATE.version = '';
+	try
+	{
+		const text = await $.fs.read( $.plugin.root.replace( /\\/g, '/' ) + '/.claude-plugin/plugin.json' );
+		const manifest = JSON.parse( text );
+		STATE.version = String( manifest.version || '' );
+	}
+	catch ( error )
+	{
+		debug( $, 'could not read plugin.json: ' + message_of( error ) );
+	}
 }
 
 
@@ -370,13 +393,30 @@ async function ensure_server( $ )
 
 
 //---------------------------------------------------------------------
+// True when the server answers its health route; the version the
+// route reports is kept for /claudit status.
+//---------------------------------------------------------------------
 
 async function health( $ )
 {
+	STATE.server_version = '';
 	try
 	{
 		const response = await $.http.fetch( STATE.server + '/api/health' );
-		return response.ok === true;
+		if ( response.ok !== true )
+		{
+			return false;
+		}
+		try
+		{
+			const body = JSON.parse( response.text );
+			STATE.server_version = String( body.version || '' );
+		}
+		catch ( error )
+		{
+			STATE.server_version = '';
+		}
+		return true;
 	}
 	catch ( error )
 	{
@@ -717,7 +757,12 @@ function server_line()
 {
 	if ( STATE.server_ok )
 	{
-		return 'Server: ' + STATE.server + ' (answering).';
+		let version = '';
+		if ( STATE.server_version )
+		{
+			version = ', version ' + STATE.server_version;
+		}
+		return 'Server: ' + STATE.server + ' (answering' + version + ').';
 	}
 	return 'Server: ' + STATE.server + ' (not answering; events are not recorded until it does).';
 }
@@ -728,7 +773,12 @@ function server_line()
 function status_text()
 {
 	const lines = [];
-	lines.push( 'claudit is ' + ( STATE.enabled ? 'on' : 'off' ) + '.' );
+	let name = 'claudit';
+	if ( STATE.version )
+	{
+		name = name + ' ' + STATE.version;
+	}
+	lines.push( name + ' is ' + ( STATE.enabled ? 'on' : 'off' ) + '.' );
 	lines.push( server_line() );
 	lines.push( 'Session ' + STATE.session + ': ' + STATE.turns + ' turns, ' + STATE.total + ' tool calls recorded, ' + STATE.calls.length + ' this turn.' );
 	let limit = 'no cap';

@@ -39,7 +39,7 @@ or name the folder in `CLAUDE_CODE_PLUGIN_DIRS`, in the environment or in the `e
 In the session:
 
 ```
-/claudit status       whether it is on, the server's address, the counts
+/claudit status       whether it is on, its version, the server's address and version, the counts
 /claudit off          stop recording (kept across sessions)
 /claudit on           record again
 ```
