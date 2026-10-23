@@ -1,7 +1,9 @@
 /*=====================================================================
   <session-list>: a column of session rows under a header, as wide as
   --sessions-width (dragged through the splitter); collapsed, a 2rem
-  rail holding the chevron alone. The live rows carry a pulsing dot.
+  rail holding the chevron alone. A row is two lines: the folder's
+  name (with the live dot, from app.css) and the time, then the counts
+  and the short id.
 =====================================================================*/
 
 .session-list
@@ -76,18 +78,8 @@
 	border-left-color: var( --bs-primary );
 }
 
-.session-list .live-dot
+.session-list .session-name
 {
-	display: inline-block;
-	width: 0.55em;
-	height: 0.55em;
-	border-radius: 50%;
-	background-color: var( --bs-success );
-	animation: claudit-pulse 1.6s ease-in-out infinite;
-}
-
-@keyframes claudit-pulse
-{
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.3; }
+	font-weight: 600;
+	min-width: 0;
 }

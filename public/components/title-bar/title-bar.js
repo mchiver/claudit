@@ -1,9 +1,12 @@
 //=====================================================================
-// <title-bar>: the name, the server's state, the engine-rows toggle
-// and the look button, whose popover holds <look-controls>.
+// <title-bar>: the name, the server's state, and the button row:
+// the engine-rows toggle, the order toggle (newest first), the
+// latest-turn button and the look button, whose popover holds
+// <look-controls>.
 //
-// Bindings: none. Reads: State (connected, health, engine) and sets
-// the engine toggle through it. Reports: nothing. The popover closes
+// Bindings: none. Reads: State (connected, health, engine, newest)
+// and sets the engine toggle, the order and the latest-turn request
+// through it. Reports: nothing. The popover closes
 // on a click elsewhere, Escape or the button again.
 //=====================================================================
 
@@ -28,6 +31,20 @@
 		controller.ToggleEngine = function ()
 		{
 			State.SetEngine( !controller.state.engine );
+		};
+
+
+		//-------------------------------------------------------------
+		controller.ToggleOrder = function ()
+		{
+			State.SetNewest( !controller.state.newest );
+		};
+
+
+		//-------------------------------------------------------------
+		controller.FocusLatest = function ()
+		{
+			State.FocusLatest();
 		};
 
 

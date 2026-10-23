@@ -17,7 +17,6 @@ export const DEFAULTS = {
 	archive_folder: '~/.claudit/archive',
 	retention_days: 30,
 	live_minutes: 30,
-	feedback: true,
 	log_file: '~/.claudit/server.log',
 };
 

@@ -9,10 +9,13 @@
 //
 // Bindings: events (the session's events, archived then live), session
 // (its summary), version (counts every change to the events), engine
-// (whether the engine's rows are shown). Reports: nothing. In a live
-// session the turn in flight is open and followed; a turn that has
-// ended is closed unless the reader opened it. Scrolls to the newest
-// row when the tree grows while the reader is at the bottom.
+// (whether the engine's rows are shown), newest (the turns newest
+// first), latest (a count: each change closes every turn but the
+// latest and scrolls to it). Reports: nothing. In a live session the
+// latest turn is open, running or ended, until the next turn starts;
+// a turn the reader opened or closed keeps that choice. Follows the
+// session when the tree grows while the reader is at its newest end
+// (the bottom, or the top when newest first).
 //=====================================================================
 
 ( function ()
@@ -28,6 +31,8 @@
 			session: '<',
 			version: '<',
 			engine: '<',
+			newest: '<',
+			latest: '<',
 		},
 		controller: [ '$element', '$timeout', EventListController ],
 	} );
@@ -38,7 +43,10 @@
 		const controller = this;
 		let built_version = -1;
 		let built_session = null;
+		let built_newest = null;
+		let seen_latest = null;
 		let last_size = 0;
+		controller.latest_key = null;
 		controller.nodes = [];
 		controller.open = {};
 		controller.shown = {};
@@ -58,9 +66,18 @@
 				controller.raw = {};
 				built_version = -1;
 			}
-			if ( controller.version !== built_version )
+			if ( controller.version !== built_version || controller.newest !== built_newest )
 			{
 				rebuild();
+			}
+			if ( seen_latest === null )
+			{
+				seen_latest = controller.latest;
+			}
+			else if ( controller.latest !== seen_latest )
+			{
+				seen_latest = controller.latest;
+				focus_latest();
 			}
 		};
 
@@ -69,8 +86,11 @@
 		function rebuild()
 		{
 			built_version = controller.version;
+			built_newest = controller.newest;
 			details = {};
-			controller.nodes = globalThis.ClauditTurns.BuildTurns( controller.events || [] );
+			const built = globalThis.ClauditTurns.BuildTurns( controller.events || [] );
+			controller.latest_key = latest_turn_key( built );
+			controller.nodes = globalThis.ClauditTurns.OrderNodes( built, controller.newest === true );
 			let size = 0;
 			for ( const node of controller.nodes )
 			{
@@ -78,19 +98,77 @@
 			}
 			const grew = size > last_size;
 			last_size = size;
+			follow( grew );
+		}
+
+
+		//-------------------------------------------------------------
+		// Scrolls to the newest end (the bottom, or the top when newest
+		// first) unless the tree grew while the reader was away from it.
+		//-------------------------------------------------------------
+		function follow( Grew )
+		{
 			const scroller = $element[ 0 ].querySelector( '.event-scroll' );
 			if ( !scroller )
 			{
 				return;
 			}
-			const at_bottom = ( scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight ) < NEAR_BOTTOM_PX;
-			if ( ( grew && at_bottom ) || !grew )
+			const newest = controller.newest === true;
+			let near = ( scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight ) < NEAR_BOTTOM_PX;
+			if ( newest )
 			{
-				$timeout( function ()
-				{
-					scroller.scrollTop = scroller.scrollHeight;
-				}, 0, false );
+				near = scroller.scrollTop < NEAR_BOTTOM_PX;
 			}
+			if ( Grew && !near )
+			{
+				return;
+			}
+			$timeout( function ()
+			{
+				scroller.scrollTop = newest ? 0 : scroller.scrollHeight;
+			}, 0, false );
+		}
+
+
+		//-------------------------------------------------------------
+		// The key of the latest turn: the last real turn in the order
+		// built (oldest first), null when there is none.
+		//-------------------------------------------------------------
+		function latest_turn_key( Nodes )
+		{
+			let key = null;
+			for ( const node of Nodes )
+			{
+				if ( node.kind === 'turn' && !node.synthetic )
+				{
+					key = node.key;
+				}
+			}
+			return key;
+		}
+
+
+		//-------------------------------------------------------------
+		// The latest-turn button: every turn closed but the latest,
+		// which opens, then the list scrolled to it once it is drawn.
+		//-------------------------------------------------------------
+		function focus_latest()
+		{
+			controller.open = {};
+			if ( controller.latest_key === null )
+			{
+				return;
+			}
+			controller.open[ controller.latest_key ] = true;
+			const key = controller.latest_key;
+			$timeout( function ()
+			{
+				const element = $element[ 0 ].querySelector( '[data-key="' + key + '"]' );
+				if ( element )
+				{
+					element.scrollIntoView( { block: 'start' } );
+				}
+			}, 0, false );
 		}
 
 
@@ -102,7 +180,7 @@
 				return controller.open[ Node.key ];
 			}
 			const live = controller.session && controller.session.live === true;
-			return live && Node.end === null && !Node.synthetic;
+			return live && Node.key === controller.latest_key;
 		};
 
 

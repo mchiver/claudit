@@ -8,7 +8,8 @@
 // result, the engine's rows) in time order. Events without a turn fall
 // into a synthetic turn so nothing is lost. InputFields( Block ) and
 // ResultText( Block ) pick what <event-list> shows of a tool_use
-// block's input and a tool_result block's content.
+// block's input and a tool_result block's content. OrderNodes( Nodes,
+// Newest ) gives the top-level nodes in the order shown.
 //
 // Loaded by the page as a plain script and by the tests through node:
 // it attaches itself to globalThis.ClauditTurns.
@@ -486,6 +487,22 @@
 
 
 	//-----------------------------------------------------------------
+	// The top-level nodes in the order shown: as built (oldest first)
+	// or reversed (newest first). Only the nodes move: a turn keeps its
+	// rows earliest to latest, and a session mark stays next to the
+	// turns it sits between.
+	//-----------------------------------------------------------------
+	function OrderNodes( Nodes, Newest )
+	{
+		const nodes = Array.isArray( Nodes ) ? Nodes : [];
+		if ( Newest !== true )
+		{
+			return nodes;
+		}
+		return nodes.slice().reverse();
+	}
+
+	//-----------------------------------------------------------------
 	function time_of( Event )
 	{
 		if ( typeof Event.time === 'number' )
@@ -506,6 +523,7 @@
 		TextOf: text_of,
 		InputFields: InputFields,
 		ResultText: ResultText,
+		OrderNodes: OrderNodes,
 	};
 
 } )();

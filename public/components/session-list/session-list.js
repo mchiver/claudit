@@ -1,7 +1,8 @@
 //=====================================================================
 // <session-list>: the sessions down the left, live ones on top,
-// archived ones below, under a header row whose chevron collapses the
-// list to a rail.
+// archived ones below, two lines each (the folder's name and the
+// time, then the counts and the short id), under a header row whose
+// chevron collapses the list to a rail.
 //
 // Bindings: sessions (the summaries from /api/sessions), selected (the
 // selected session's id), collapsed (whether the list is a rail).

@@ -6,10 +6,16 @@
 		<span ng-if="!$ctrl.state.connected">not connected</span>
 		<span ng-if="$ctrl.state.health" class="dim ms-2">{{ $ctrl.state.health.sessions }} sessions · port {{ $ctrl.state.health.port }}</span>
 	</span>
-	<button type="button" class="btn btn-sm btn-outline-secondary me-2" ng-class="{ active: $ctrl.state.engine }"
-		ng-click="$ctrl.ToggleEngine()" title="Show the rows the engine appends: reminders, attachments, notices, thinking">engine rows</button>
-	<button type="button" class="btn btn-sm btn-outline-secondary look-button" ng-class="{ active: $ctrl.look_open }"
-		ng-click="$ctrl.ToggleLook( $event )" title="The theme, the size and the margins"><svg class="icon"><use href="#i-gear"></use></svg></button>
+	<div class="bar-buttons d-flex align-items-center">
+		<button type="button" class="bar-button" ng-class="{ 'is-on': $ctrl.state.engine }"
+			ng-click="$ctrl.ToggleEngine()" title="Show the rows the engine appends: reminders, attachments, notices, thinking"><svg class="icon"><use href="#i-rows"></use></svg><span>engine rows</span></button>
+		<button type="button" class="bar-button" ng-class="{ 'is-on': $ctrl.state.newest }"
+			ng-click="$ctrl.ToggleOrder()" title="Newest turn first; off, oldest first"><svg class="icon"><use href="#i-sort"></use></svg><span>newest first</span></button>
+		<button type="button" class="bar-button"
+			ng-click="$ctrl.FocusLatest()" title="Close every turn but the latest and scroll to it"><svg class="icon"><use href="#i-latest"></use></svg><span>latest turn</span></button>
+		<button type="button" class="bar-button look-button" ng-class="{ 'is-on': $ctrl.look_open }"
+			ng-click="$ctrl.ToggleLook( $event )" title="The theme, the size and the margins"><svg class="icon"><use href="#i-gear"></use></svg></button>
+	</div>
 	<div class="look-popover" ng-if="$ctrl.look_open">
 		<look-controls></look-controls>
 	</div>

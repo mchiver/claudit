@@ -14,11 +14,13 @@
 			ng-class="{ 'is-selected': summary.id === $ctrl.selected }" ng-click="$ctrl.Select( summary )">
 			<div class="d-flex align-items-center">
 				<span class="live-dot me-2"></span>
-				<span class="mono">{{ summary.id | shortId }}</span>
-				<span class="ms-auto small dim">{{ summary.updated | clock }}</span>
+				<span class="session-name text-truncate flex-grow-1" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</span>
+				<span class="ms-2 small dim text-nowrap">{{ summary.updated | clock }}</span>
 			</div>
-			<div class="small text-truncate" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</div>
-			<div class="small dim"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
+			<div class="d-flex small dim">
+				<span class="text-truncate flex-grow-1"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></span>
+				<span class="mono ms-2">{{ summary.id | shortId }}</span>
+			</div>
 		</a>
 
 		<div class="session-group-title small text-uppercase dim px-3 pt-3 pb-1">Archived</div>
@@ -26,11 +28,13 @@
 		<a href="" class="session-row d-block px-3 py-2" ng-repeat="summary in $ctrl.Archived() track by summary.id"
 			ng-class="{ 'is-selected': summary.id === $ctrl.selected }" ng-click="$ctrl.Select( summary )">
 			<div class="d-flex align-items-center">
-				<span class="mono">{{ summary.id | shortId }}</span>
-				<span class="ms-auto small dim">{{ summary.started | day }} {{ summary.started | clock }}</span>
+				<span class="session-name text-truncate flex-grow-1" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</span>
+				<span class="ms-2 small dim text-nowrap">{{ summary.started | day }} {{ summary.started | clock }}</span>
 			</div>
-			<div class="small text-truncate" title="{{ summary.cwd }}">{{ summary.cwd | basename }}</div>
-			<div class="small dim"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></div>
+			<div class="d-flex small dim">
+				<span class="text-truncate flex-grow-1"><span ng-if="summary.counts.turns">{{ summary.counts.turns }} turns · </span>{{ summary.counts.calls }} calls<span ng-if="summary.counts.denied"> · {{ summary.counts.denied }} denied</span><span ng-if="summary.counts.failed"> · {{ summary.counts.failed }} failed</span></span>
+				<span class="mono ms-2">{{ summary.id | shortId }}</span>
+			</div>
 		</a>
 	</div>
 </aside>

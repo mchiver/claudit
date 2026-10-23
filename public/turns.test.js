@@ -129,3 +129,19 @@ test( 'ResultText: a content string, text blocks joined, an image named, is_erro
 	assert.deepEqual( TURNS.ResultText( { type: 'tool_result' } ), { text: '', error: false } );
 	assert.deepEqual( TURNS.ResultText( undefined ), { text: '', error: false } );
 } );
+
+
+//---------------------------------------------------------------------
+test( 'OrderNodes: newest first reverses the nodes alone; the rows inside a turn keep their order', function ()
+{
+	const nodes = TURNS.BuildTurns( sample_events() );
+	const newest = TURNS.OrderNodes( nodes, true );
+	function key_of( Node ) { return Node.key; }
+	assert.deepEqual( newest.map( key_of ), nodes.map( key_of ).reverse() );
+	assert.equal( newest[ 3 ].id, 't1' );
+	assert.equal( newest[ 3 ].rows[ 0 ].key, 'engine-m1b-0' );
+	assert.equal( newest[ 3 ].rows[ 4 ].key, 'text-m4-0' );
+	assert.equal( TURNS.OrderNodes( nodes, false ), nodes );
+	assert.equal( TURNS.OrderNodes( nodes ), nodes );
+	assert.deepEqual( TURNS.OrderNodes( null, true ), [] );
+} );

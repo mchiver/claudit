@@ -1,5 +1,6 @@
 /*=====================================================================
-  <event-list>: a scrolling tree. A turn's head is a band that opens
+  <event-list>: a header naming the session (the folder as the
+  headline, the id small and dim), then a scrolling tree. A turn's head is a band that opens
   its rows; a row's head opens its JSON. The running turn and the
   running call are highlighted, denied and failed calls tinted, the
   engine's rows dimmed.
@@ -15,6 +16,24 @@
 {
 	flex-shrink: 0;
 	min-width: 0;
+}
+
+.event-list .head-title
+{
+	min-width: 0;
+	font-size: 1.2rem;
+	font-weight: 600;
+}
+
+.event-list .head-id,
+.event-list .head-counts
+{
+	flex-shrink: 0;
+}
+
+.event-list .head-counts
+{
+	font-size: 0.95rem;
 }
 
 .event-list .event-scroll

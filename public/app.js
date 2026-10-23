@@ -2,8 +2,9 @@
 // Claudit web UI: the module, the State service and the filters.
 //
 // State holds what the page shows: whether the engine's rows are
-// shown, the session list's width and whether it is collapsed, the
-// sessions, the selected session and its events (with a version that
+// shown, whether the turns run newest first, a count of the times the
+// latest turn was asked for, the session list's width and whether it
+// is collapsed, the sessions, the selected session and its events (with a version that
 // counts every change to them), and the live connection. The look
 // (palette, size, margins) is theme.js's. The components read State
 // through their bindings or directly, and report through scope events
@@ -16,6 +17,7 @@
 	'use strict';
 
 	const ENGINE_KEY = 'claudit.engine';
+	const ORDER_KEY = 'claudit.order';
 	const SESSIONS_WIDTH_KEY = 'claudit.sessions_width';
 	const SESSIONS_HIDDEN_KEY = 'claudit.sessions_hidden';
 	const SESSIONS_MIN_REM = 12;
@@ -29,6 +31,8 @@
 	{
 		const STATE = {
 			engine: read_setting( ENGINE_KEY, 'off' ) === 'on',
+			newest: read_setting( ORDER_KEY, 'oldest' ) === 'newest',
+			latest: 0,
 			sessions_width: read_setting( SESSIONS_WIDTH_KEY, '' ),
 			sessions_hidden: read_setting( SESSIONS_HIDDEN_KEY, 'off' ) === 'on',
 			sessions: [],
@@ -86,6 +90,27 @@
 		{
 			STATE.engine = ( On === true );
 			write_setting( ENGINE_KEY, STATE.engine ? 'on' : 'off' );
+		}
+
+
+		//-------------------------------------------------------------
+		// The order of the turns: newest first when On, else oldest
+		// first; kept in the browser.
+		//-------------------------------------------------------------
+		function SetNewest( On )
+		{
+			STATE.newest = ( On === true );
+			write_setting( ORDER_KEY, STATE.newest ? 'newest' : 'oldest' );
+		}
+
+
+		//-------------------------------------------------------------
+		// Asks the event list to close every turn but the latest and
+		// scroll to it: the count changes, and the list acts on that.
+		//-------------------------------------------------------------
+		function FocusLatest()
+		{
+			STATE.latest = STATE.latest + 1;
 		}
 
 
@@ -313,6 +338,8 @@
 			state: STATE,
 			Start: Start,
 			SetEngine: SetEngine,
+			SetNewest: SetNewest,
+			FocusLatest: FocusLatest,
 			SetSessionsWidth: SetSessionsWidth,
 			SetSessionsHidden: SetSessionsHidden,
 			LoadHealth: LoadHealth,

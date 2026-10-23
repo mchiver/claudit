@@ -1,9 +1,10 @@
 <section class="event-list d-flex flex-column flex-grow-1">
 	<div class="event-head px-3 py-2 border-bottom d-flex align-items-center" ng-if="$ctrl.session">
-		<span class="mono">{{ $ctrl.session.id }}</span>
-		<span class="badge ms-2" ng-class="$ctrl.session.live ? 'text-bg-success' : 'text-bg-secondary'">{{ $ctrl.session.live ? 'live' : 'archived' }}</span>
-		<span class="ms-3 small dim text-truncate" title="{{ $ctrl.session.cwd }}">{{ $ctrl.session.cwd }}</span>
-		<span class="ms-auto ps-3 small dim text-nowrap">{{ $ctrl.session.started | day }} {{ $ctrl.session.started | clock }} · {{ $ctrl.Turns() }} turns · {{ $ctrl.Calls() }} calls</span>
+		<span class="live-dot me-2" ng-class="{ 'is-still': !$ctrl.session.live }"></span>
+		<span class="head-title text-truncate" title="{{ $ctrl.session.cwd }}">{{ $ctrl.session.cwd }}</span>
+		<span class="head-state small ms-2 text-nowrap" ng-class="$ctrl.session.live ? 'text-success' : 'dim'">{{ $ctrl.session.live ? 'live' : 'archived' }}</span>
+		<span class="head-id mono small dim ms-3 text-nowrap">{{ $ctrl.session.id }}</span>
+		<span class="head-counts ms-auto ps-3 dim text-nowrap">{{ $ctrl.session.started | day }} {{ $ctrl.session.started | clock }} · {{ $ctrl.Turns() }} turns · {{ $ctrl.Calls() }} calls</span>
 	</div>
 	<div class="event-head px-3 py-2 border-bottom small dim" ng-if="!$ctrl.session">Pick a session.</div>
 
@@ -16,7 +17,7 @@
 				<span>session {{ node.phase === 'start' ? 'started' : 'ended' }}<span ng-if="node.reason"> ({{ node.reason }})</span></span>
 			</div>
 
-			<div ng-if="node.kind === 'turn'" class="turn" ng-class="$ctrl.TurnClass( node )">
+			<div ng-if="node.kind === 'turn'" class="turn" data-key="{{ node.key }}" ng-class="$ctrl.TurnClass( node )">
 				<div class="turn-head d-flex align-items-center px-3 py-2" ng-click="$ctrl.Toggle( node )">
 					<span class="caret me-2">{{ $ctrl.IsOpen( node ) ? '▾' : '▸' }}</span>
 					<span class="mono col-time">{{ node.start | clock }}</span>

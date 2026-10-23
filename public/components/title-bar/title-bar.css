@@ -1,6 +1,8 @@
 /*=====================================================================
   <title-bar>: one row; a dot that is green while the live stream is
-  connected; the look popover under its button at the bar's right end.
+  connected; a row of pill buttons at the right end, filled with the
+  palette's accent when on, bordered with it when off; the look
+  popover under its button.
 =====================================================================*/
 
 .title-bar
@@ -25,10 +27,59 @@
 	background-color: var( --bs-success );
 }
 
-.title-bar .look-button .icon
+.title-bar .bar-buttons
 {
-	width: 1.1em;
-	height: 1.1em;
+	gap: 0.5rem;
+}
+
+.title-bar .bar-button
+{
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4em;
+	padding: 0.25rem 0.75rem;
+	border: 1px solid var( --accent );
+	border-radius: 999px;
+	background-color: transparent;
+	color: var( --accent );
+	font-size: 0.85rem;
+	line-height: 1.2;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.title-bar .bar-button:hover
+{
+	background-color: color-mix( in srgb, var( --accent ) 14%, transparent );
+}
+
+.title-bar .bar-button:active
+{
+	background-color: color-mix( in srgb, var( --accent ) 28%, transparent );
+}
+
+.title-bar .bar-button.is-on
+{
+	background-color: var( --accent );
+	color: var( --page-bg );
+}
+
+.title-bar .bar-button.is-on:hover
+{
+	background-color: color-mix( in srgb, var( --accent ) 85%, var( --text ) );
+}
+
+.title-bar .bar-button .icon
+{
+	width: 1.05em;
+	height: 1.05em;
+}
+
+.title-bar .look-button
+{
+	padding-left: 0.55rem;
+	padding-right: 0.55rem;
 }
 
 .title-bar .look-popover

@@ -161,83 +161,6 @@ export function FormatStatus( Calls, Now )
 }
 
 
-//---------------------------------------------------------------------
-// The header of the block beneath the answer: the session, the time
-// the turn ended (when given) and the count. It is what the render
-// hook finds the turn's block by, so it starts with the mod's name.
-//---------------------------------------------------------------------
-
-export function BlockHeader( Calls, SessionId, EndedAt )
-{
-	const count = Calls.length;
-	const noun = count === 1 ? 'tool call' : 'tool calls';
-	let header = 'claudit · session ' + short_id( SessionId );
-	if ( typeof EndedAt === 'number' )
-	{
-		header = header + ' · ' + FormatClock( EndedAt );
-	}
-	return header + ' · ' + count + ' ' + noun;
-}
-
-
-//---------------------------------------------------------------------
-// One row per call, as strings: the clock, the duration, the tool, the
-// summary, the outcome, the agent's short id ('' on the main loop) and
-// whether the outcome is one to flag (denied or failed). Shared by the
-// text block and the drawn one.
-//---------------------------------------------------------------------
-
-export function BlockRows( Calls )
-{
-	const rows = [];
-	for ( const call of Calls || [] )
-	{
-		rows.push( {
-			clock: FormatClock( call.start ),
-			duration: FormatDuration( call.duration ),
-			tool: String( call.tool || '' ),
-			summary: String( call.summary || '' ),
-			outcome: String( call.outcome || 'done' ),
-			agent: call.agent ? short_id( call.agent ) : '',
-			flagged: call.outcome === 'denied' || call.outcome === 'failed',
-		} );
-	}
-	return rows;
-}
-
-
-//---------------------------------------------------------------------
-// The block shown beneath the answer when a turn ends, as text: the
-// header, then one line per call: "hh:mm:ss  1.2s  Bash  description".
-// Empty when the turn made no call.
-//---------------------------------------------------------------------
-
-function short_id( Id )
-{
-	if ( typeof Id !== 'string' || Id === '' )
-	{
-		return '?';
-	}
-	return Id.slice( 0, 8 );
-}
-
-
-//---------------------------------------------------------------------
-
-function pad_left( Text, Width )
-{
-	return String( Text ).padStart( Width, ' ' );
-}
-
-
-//---------------------------------------------------------------------
-
-function pad_right( Text, Width )
-{
-	return String( Text ).padEnd( Width, ' ' );
-}
-
-
 //=====================================================================
 // Rows cut to size
 //=====================================================================
@@ -403,60 +326,15 @@ export function ByteLength( Text )
 }
 
 
-//---------------------------------------------------------------------
-// Padding, for the drawn block as for the text one.
-//---------------------------------------------------------------------
-
-export function PadLeft( Text, Width )
-{
-	return pad_left( Text, Width );
-}
-
-
-//---------------------------------------------------------------------
-
-export function PadRight( Text, Width )
-{
-	return pad_right( Text, Width );
-}
-
-
 //=====================================================================
-// The drawn block's columns and the command's words
+// The command's words
 //=====================================================================
-
-export const TOOL_WIDTH_MAX = 16;
-
-
-//---------------------------------------------------------------------
-// The columns of the drawn block, as widths in cells, so the rows'
-// cells line up: Time 8, Duration 7, Tool the longest tool name in the
-// rows (at least 4, at most TOOL_WIDTH_MAX), Outcome 6, and Agent 8
-// when any row came from a subagent (else 0: no column). The summary
-// takes what is left.
-//---------------------------------------------------------------------
-
-export function BlockColumns( Rows )
-{
-	let tool = 4;
-	let agent = 0;
-	for ( const row of Rows || [] )
-	{
-		tool = Math.max( tool, String( row.tool || '' ).length );
-		if ( row.agent )
-		{
-			agent = 8;
-		}
-	}
-	tool = Math.min( tool, TOOL_WIDTH_MAX );
-	return { time: 8, duration: 7, tool: tool, outcome: 6, agent: agent };
-}
 
 
 //---------------------------------------------------------------------
 // The words of /claudit <args>: { word, value }, both lower case,
-// "summary on" giving word "summary" and value "on"; nothing gives
-// two empty strings.
+// "on" giving word "on" and an empty value; nothing gives two empty
+// strings.
 //---------------------------------------------------------------------
 
 export function ParseCommand( Args )
