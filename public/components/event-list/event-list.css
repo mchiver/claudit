@@ -59,6 +59,7 @@
 .event-list .col-tool
 {
 	width: 9rem;
+	margin-left: 0.75rem;
 	flex-shrink: 0;
 	white-space: nowrap;
 	overflow: hidden;
