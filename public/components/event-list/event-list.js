@@ -11,11 +11,15 @@
 // (its summary), version (counts every change to the events), engine
 // (whether the engine's rows are shown), newest (the turns newest
 // first), latest (a count: each change closes every turn but the
-// latest and scrolls to it). Reports: nothing. In a live session the
+// latest and scrolls to it), search (the text that filters the turns).
+// Reports: 'claudit:matches' ({ matched, total } turns, or null with
+// no search) each time the tree is built. In a live session the
 // latest turn is open, running or ended, until the next turn starts;
 // a turn the reader opened or closed keeps that choice. Follows the
 // session when the tree grows while the reader is at its newest end
-// (the bottom, or the top when newest first).
+// (the bottom, or the top when newest first). While the session is
+// live and a turn or call is running, a one-second timer keeps its
+// running time counting in the duration column.
 //=====================================================================
 
 ( function ()
@@ -23,6 +27,7 @@
 	'use strict';
 
 	const NEAR_BOTTOM_PX = 48;
+	const TICK_MS = 1000;
 
 	angular.module( 'claudit' ).component( 'eventList', {
 		templateUrl: 'components/event-list/event-list.html',
@@ -33,17 +38,23 @@
 			engine: '<',
 			newest: '<',
 			latest: '<',
+			search: '<',
 		},
-		controller: [ '$element', '$timeout', EventListController ],
+		controller: [ '$element', '$timeout', '$interval', '$filter', '$scope', EventListController ],
 	} );
 
 
-	function EventListController( $element, $timeout )
+	function EventListController( $element, $timeout, $interval, $filter, $scope )
 	{
 		const controller = this;
 		let built_version = -1;
 		let built_session = null;
 		let built_newest = null;
+		let built_search = null;
+		let has_running = false;
+		let timer = null;
+		let all_nodes = [];
+		controller.now = Date.now();
 		let seen_latest = null;
 		let last_size = 0;
 		controller.latest_key = null;
@@ -66,10 +77,11 @@
 				controller.raw = {};
 				built_version = -1;
 			}
-			if ( controller.version !== built_version || controller.newest !== built_newest )
+			if ( controller.version !== built_version || controller.newest !== built_newest || controller.search !== built_search )
 			{
 				rebuild();
 			}
+			update_timer();
 			if ( seen_latest === null )
 			{
 				seen_latest = controller.latest;
@@ -87,10 +99,14 @@
 		{
 			built_version = controller.version;
 			built_newest = controller.newest;
+			built_search = controller.search;
 			details = {};
 			const built = globalThis.ClauditTurns.BuildTurns( controller.events || [] );
 			controller.latest_key = latest_turn_key( built );
-			controller.nodes = globalThis.ClauditTurns.OrderNodes( built, controller.newest === true );
+			all_nodes = globalThis.ClauditTurns.OrderNodes( built, controller.newest === true );
+			controller.nodes = globalThis.ClauditTurns.FilterNodes( all_nodes, controller.search );
+			report_matches( all_nodes, controller.nodes );
+			has_running = anything_running( built );
 			let size = 0;
 			for ( const node of controller.nodes )
 			{
@@ -100,6 +116,143 @@
 			last_size = size;
 			follow( grew );
 		}
+
+
+		//-------------------------------------------------------------
+		// Tells the page how many turns the search keeps, of how many;
+		// null when there is no search.
+		//-------------------------------------------------------------
+		function report_matches( All, Kept )
+		{
+			const search = String( controller.search || '' ).trim();
+			if ( search === '' )
+			{
+				$scope.$emit( 'claudit:matches', null );
+				return;
+			}
+			$scope.$emit( 'claudit:matches', { matched: count_turns( Kept ), total: count_turns( All ) } );
+		}
+
+
+		//-------------------------------------------------------------
+		function count_turns( Nodes )
+		{
+			return Nodes.filter( function ( Node ) { return Node.kind === 'turn' && !Node.synthetic; } ).length;
+		}
+
+
+		//-------------------------------------------------------------
+		// Whether a turn or a call in the tree is still running.
+		//-------------------------------------------------------------
+		function anything_running( Nodes )
+		{
+			for ( const node of Nodes )
+			{
+				if ( node.kind !== 'turn' )
+				{
+					continue;
+				}
+				if ( is_running_turn( node ) )
+				{
+					return true;
+				}
+				for ( const row of node.rows )
+				{
+					if ( is_running_call( row ) )
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+
+		//-------------------------------------------------------------
+		function is_running_turn( Node )
+		{
+			return Node.end === null && !Node.synthetic && typeof Node.start === 'number';
+		}
+
+
+		//-------------------------------------------------------------
+		function is_running_call( Row )
+		{
+			return Row.kind === 'call' && Row.call && Row.call.outcome === 'running' && typeof Row.call.start === 'number';
+		}
+
+
+		//-------------------------------------------------------------
+		// The one-second timer runs only while the session is live and
+		// something is running; otherwise it is cancelled.
+		//-------------------------------------------------------------
+		function update_timer()
+		{
+			const live = controller.session && controller.session.live === true;
+			const wanted = live && has_running;
+			if ( wanted && timer === null )
+			{
+				controller.now = Date.now();
+				timer = $interval( function () { controller.now = Date.now(); }, TICK_MS );
+			}
+			else if ( !wanted && timer !== null )
+			{
+				$interval.cancel( timer );
+				timer = null;
+			}
+		}
+
+
+		//-------------------------------------------------------------
+		// A turn's duration column: the exact duration once it ended,
+		// the running time in whole seconds while it runs in a live
+		// session, else blank.
+		//-------------------------------------------------------------
+		controller.TurnDuration = function ( Node )
+		{
+			if ( typeof Node.duration === 'number' )
+			{
+				return $filter( 'duration' )( Node.duration );
+			}
+			if ( timer !== null && is_running_turn( Node ) )
+			{
+				return $filter( 'elapsed' )( controller.now - Node.start );
+			}
+			return '';
+		};
+
+
+		//-------------------------------------------------------------
+		// A row's duration column: blank for an assistant or engine row,
+		// which has no call.
+		//-------------------------------------------------------------
+		controller.CallDuration = function ( Row )
+		{
+			if ( !Row.call )
+			{
+				return '';
+			}
+			if ( typeof Row.call.duration === 'number' )
+			{
+				return $filter( 'duration' )( Row.call.duration );
+			}
+			if ( timer !== null && is_running_call( Row ) )
+			{
+				return $filter( 'elapsed' )( controller.now - Row.call.start );
+			}
+			return '';
+		};
+
+
+		//-------------------------------------------------------------
+		controller.$onDestroy = function ()
+		{
+			if ( timer !== null )
+			{
+				$interval.cancel( timer );
+				timer = null;
+			}
+		};
 
 
 		//-------------------------------------------------------------
@@ -315,9 +468,11 @@
 
 
 		//-------------------------------------------------------------
+		// The header's counts are the whole session's, search or not.
+		//-------------------------------------------------------------
 		controller.Turns = function ()
 		{
-			return controller.nodes.filter( function ( Node ) { return Node.kind === 'turn' && !Node.synthetic; } ).length;
+			return count_turns( all_nodes );
 		};
 
 
@@ -325,7 +480,7 @@
 		controller.Calls = function ()
 		{
 			let count = 0;
-			for ( const node of controller.nodes )
+			for ( const node of all_nodes )
 			{
 				if ( node.kind === 'turn' )
 				{

@@ -9,7 +9,10 @@
 // into a synthetic turn so nothing is lost. InputFields( Block ) and
 // ResultText( Block ) pick what <event-list> shows of a tool_use
 // block's input and a tool_result block's content. OrderNodes( Nodes,
-// Newest ) gives the top-level nodes in the order shown.
+// Newest ) gives the top-level nodes in the order shown. FilterNodes(
+// Nodes, Query ) keeps the session marks and the turns whose user
+// message, assistant text, tool names or call summaries hold the
+// query, ignoring case.
 //
 // Loaded by the page as a plain script and by the tests through node:
 // it attaches itself to globalThis.ClauditTurns.
@@ -503,6 +506,64 @@
 	}
 
 	//-----------------------------------------------------------------
+	// The nodes with the turns that do not match the query removed. An
+	// empty query keeps everything. A turn matches on its user message,
+	// its assistant rows' text, and its calls' tool names and summary
+	// lines; engine rows, tool inputs and results are not searched.
+	//-----------------------------------------------------------------
+	function FilterNodes( Nodes, Query )
+	{
+		const nodes = Array.isArray( Nodes ) ? Nodes : [];
+		const query = String( Query || '' ).trim().toLowerCase();
+		if ( query === '' )
+		{
+			return nodes;
+		}
+		return nodes.filter( function ( Node )
+		{
+			if ( Node.kind !== 'turn' )
+			{
+				return true;
+			}
+			return turn_matches( Node, query );
+		} );
+	}
+
+
+	//-----------------------------------------------------------------
+	function turn_matches( Node, Query )
+	{
+		if ( holds( Node.text, Query ) )
+		{
+			return true;
+		}
+		for ( const row of Node.rows )
+		{
+			if ( row.kind === 'text' && holds( row.block ? row.block.text : '', Query ) )
+			{
+				return true;
+			}
+			if ( row.kind === 'call' && ( holds( row.call.tool, Query ) || holds( row.line, Query ) ) )
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+
+	//-----------------------------------------------------------------
+	function holds( Text, Query )
+	{
+		if ( typeof Text !== 'string' || Text === '' )
+		{
+			return false;
+		}
+		return Text.toLowerCase().includes( Query );
+	}
+
+
+	//-----------------------------------------------------------------
 	function time_of( Event )
 	{
 		if ( typeof Event.time === 'number' )
@@ -524,6 +585,7 @@
 		InputFields: InputFields,
 		ResultText: ResultText,
 		OrderNodes: OrderNodes,
+		FilterNodes: FilterNodes,
 	};
 
 } )();

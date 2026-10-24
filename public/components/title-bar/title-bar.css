@@ -1,7 +1,8 @@
 /*=====================================================================
   <title-bar>: one row; a dot that is green while the live stream is
-  connected; the buttons at the right end (Bootstrap outline buttons,
-  active when on); the look popover under its button.
+  connected; the search box with its clear button inside it and the
+  match count beside it; the buttons at the right end (Bootstrap
+  outline buttons, active when on); the look popover under its button.
 =====================================================================*/
 
 .title-bar
@@ -24,6 +25,36 @@
 .title-bar .status-dot.is-on
 {
 	background-color: var( --bs-success );
+}
+
+.title-bar .search-field
+{
+	position: relative;
+	width: 16rem;
+	max-width: 40vw;
+}
+
+.title-bar .search-field .form-control
+{
+	padding-right: 1.8rem;
+}
+
+.title-bar .search-field .clear-button
+{
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	padding: 0 0.5rem;
+	line-height: 1;
+	font-size: 1.1em;
+	color: var( --muted );
+	text-decoration: none;
+}
+
+.title-bar .search-field .clear-button:hover
+{
+	color: var( --text );
 }
 
 .title-bar .btn .icon

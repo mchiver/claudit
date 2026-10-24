@@ -145,3 +145,21 @@ test( 'OrderNodes: newest first reverses the nodes alone; the rows inside a turn
 	assert.equal( TURNS.OrderNodes( nodes ), nodes );
 	assert.deepEqual( TURNS.OrderNodes( null, true ), [] );
 } );
+
+
+//---------------------------------------------------------------------
+test( 'FilterNodes: an empty query keeps all; a turn matches on its user text, assistant text, tool name or summary, ignoring case; session marks stay', function ()
+{
+	const nodes = TURNS.BuildTurns( sample_events() );
+	function key_of( Node ) { return Node.key; }
+	assert.equal( TURNS.FilterNodes( nodes, '' ), nodes );
+	assert.equal( TURNS.FilterNodes( nodes, '   ' ), nodes );
+	assert.deepEqual( TURNS.FilterNodes( nodes, 'WORLD' ).filter( function ( Node ) { return Node.kind === 'turn'; } ).map( key_of ), [ 'turn-t1' ] );
+	assert.deepEqual( TURNS.FilterNodes( nodes, 'i will look' ).filter( function ( Node ) { return Node.kind === 'turn'; } ).map( key_of ), [ 'turn-t1' ] );
+	assert.deepEqual( TURNS.FilterNodes( nodes, 'bash' ).filter( function ( Node ) { return Node.kind === 'turn'; } ).map( key_of ), [ 'turn-t1' ] );
+	assert.deepEqual( TURNS.FilterNodes( nodes, 'list files' ).filter( function ( Node ) { return Node.kind === 'turn'; } ).map( key_of ), [ 'turn-t1' ] );
+	const none = TURNS.FilterNodes( nodes, 'engine text' );
+	assert.equal( none.filter( function ( Node ) { return Node.kind === 'turn' && Node.id === 't1'; } ).length, 0 );
+	assert.deepEqual( none.filter( function ( Node ) { return Node.kind === 'session'; } ).map( key_of ), nodes.filter( function ( Node ) { return Node.kind === 'session'; } ).map( key_of ) );
+	assert.deepEqual( TURNS.FilterNodes( null, 'x' ), [] );
+} );

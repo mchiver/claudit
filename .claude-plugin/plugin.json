@@ -1,6 +1,6 @@
 {
 	"name": "claudit",
-	"version": "0.5.1",
+	"version": "0.6.0",
 	"description": "Exposes the audit trail of a Claude Code session: every tool call, timed, shown in the session, streamed to a local web page and archived.",
 	"author": {
 		"name": "mchiver"

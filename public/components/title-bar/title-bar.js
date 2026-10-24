@@ -1,13 +1,15 @@
 //=====================================================================
-// <title-bar>: the name, the server's state, and the button row:
-// the engine-rows toggle, the order toggle (newest first), the
+// <title-bar>: the name, the server's state, the search box (with
+// its clear button and the count of matching turns) and the button
+// row: the engine-rows toggle, the order toggle (newest first), the
 // latest-turn button and the look button, whose popover holds
 // <look-controls>.
 //
-// Bindings: none. Reads: State (connected, health, engine, newest)
-// and sets the engine toggle, the order and the latest-turn request
-// through it. Reports: nothing. The popover closes
-// on a click elsewhere, Escape or the button again.
+// Bindings: none. Reads: State (connected, health, engine, newest,
+// matches) and sets the engine toggle, the order, the search text and
+// the latest-turn request through it. Reports: nothing. The popover
+// closes on a click elsewhere, Escape or the button again; Escape in
+// the search box clears it.
 //=====================================================================
 
 ( function ()
@@ -25,6 +27,7 @@
 		const controller = this;
 		controller.state = State.state;
 		controller.look_open = false;
+		controller.search = State.state.search;
 
 
 		//-------------------------------------------------------------
@@ -45,6 +48,31 @@
 		controller.FocusLatest = function ()
 		{
 			State.FocusLatest();
+		};
+
+
+		//-------------------------------------------------------------
+		controller.Search = function ()
+		{
+			State.SetSearch( controller.search );
+		};
+
+
+		//-------------------------------------------------------------
+		controller.ClearSearch = function ()
+		{
+			controller.search = '';
+			State.SetSearch( '' );
+		};
+
+
+		//-------------------------------------------------------------
+		controller.SearchKey = function ( Event )
+		{
+			if ( Event.key === 'Escape' )
+			{
+				controller.ClearSearch();
+			}
 		};
 
 

@@ -6,6 +6,14 @@
 		<span ng-if="!$ctrl.state.connected">not connected</span>
 		<span ng-if="$ctrl.state.health" class="dim ms-2">{{ $ctrl.state.health.sessions }} sessions · port {{ $ctrl.state.health.port }}</span>
 	</span>
+	<div class="search-box d-flex align-items-center me-3">
+		<div class="search-field">
+			<input type="text" class="form-control form-control-sm" placeholder="Search turns" aria-label="Search turns"
+				ng-model="$ctrl.search" ng-change="$ctrl.Search()" ng-keydown="$ctrl.SearchKey( $event )">
+			<button type="button" class="btn btn-sm btn-link clear-button" ng-if="$ctrl.search" ng-click="$ctrl.ClearSearch()" title="Clear the search">×</button>
+		</div>
+		<span class="small dim ms-2 text-nowrap" ng-if="$ctrl.search && $ctrl.state.matches">{{ $ctrl.state.matches.matched }} of {{ $ctrl.state.matches.total }} turns</span>
+	</div>
 	<div class="bar-buttons d-flex align-items-center gap-2">
 		<button type="button" class="btn btn-sm btn-outline-secondary" ng-class="{ active: $ctrl.state.engine }"
 			ng-click="$ctrl.ToggleEngine()" title="Show the rows the engine appends: reminders, attachments, notices, thinking"><svg class="icon"><use href="#i-rows"></use></svg><span>engine rows</span></button>

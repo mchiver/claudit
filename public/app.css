@@ -23,6 +23,11 @@
 	--text: #1f2328;
 	--muted: #6b7380;
 	--accent: #0d6efd;
+
+	/* The live dot: its resting green, and the brighter green and glow at the extent of the pulse. */
+	--live: #198754;
+	--live-bright: #4dff88;
+	--live-glow: rgba( 77, 255, 136, 0.65 );
 }
 
 [data-bs-theme="dark"]
@@ -159,7 +164,7 @@ a
 	vertical-align: -0.15em;
 }
 
-/* The live dot: green and pulsing for a live session, grey and still otherwise. */
+/* The live dot: green for a live session, pulsing to a much brighter green with a glow; grey and still otherwise. */
 
 .live-dot
 {
@@ -168,18 +173,19 @@ a
 	height: 0.55em;
 	border-radius: 50%;
 	flex-shrink: 0;
-	background-color: var( --bs-success );
+	background-color: var( --live );
 	animation: claudit-pulse 1.6s ease-in-out infinite;
 }
 
 .live-dot.is-still
 {
 	background-color: var( --bs-secondary );
+	box-shadow: none;
 	animation: none;
 }
 
 @keyframes claudit-pulse
 {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.3; }
+	0%, 100% { background-color: var( --live ); box-shadow: 0 0 0 0 transparent; }
+	50% { background-color: var( --live-bright ); box-shadow: 0 0 6px 2px var( --live-glow ); }
 }

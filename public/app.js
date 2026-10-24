@@ -4,7 +4,8 @@
 // State holds what the page shows: whether the engine's rows are
 // shown, whether the turns run newest first, a count of the times the
 // latest turn was asked for, the session list's width and whether it
-// is collapsed, the sessions, the selected session and its events (with a version that
+// is collapsed, the search text and how many turns match it, the
+// sessions, the selected session and its events (with a version that
 // counts every change to them), and the live connection. The look
 // (palette, size, margins) is theme.js's. The components read State
 // through their bindings or directly, and report through scope events
@@ -35,6 +36,8 @@
 			latest: 0,
 			sessions_width: read_setting( SESSIONS_WIDTH_KEY, '' ),
 			sessions_hidden: read_setting( SESSIONS_HIDDEN_KEY, 'off' ) === 'on',
+			search: '',
+			matches: null,
 			sessions: [],
 			selected: null,
 			session: null,
@@ -111,6 +114,30 @@
 		function FocusLatest()
 		{
 			STATE.latest = STATE.latest + 1;
+		}
+
+
+		//-------------------------------------------------------------
+		// The search text, which filters the turns on screen; it lives
+		// for the page, not in the browser's storage.
+		//-------------------------------------------------------------
+		function SetSearch( Text )
+		{
+			STATE.search = String( Text || '' );
+			if ( STATE.search === '' )
+			{
+				STATE.matches = null;
+			}
+		}
+
+
+		//-------------------------------------------------------------
+		// How many turns the search keeps, of how many; null when the
+		// event list reports nothing to count.
+		//-------------------------------------------------------------
+		function SetMatches( Matches )
+		{
+			STATE.matches = Matches || null;
 		}
 
 
@@ -340,6 +367,8 @@
 			SetEngine: SetEngine,
 			SetNewest: SetNewest,
 			FocusLatest: FocusLatest,
+			SetSearch: SetSearch,
+			SetMatches: SetMatches,
 			SetSessionsWidth: SetSessionsWidth,
 			SetSessionsHidden: SetSessionsHidden,
 			LoadHealth: LoadHealth,
@@ -438,6 +467,29 @@
 			}
 			const minutes = Math.floor( Ms / 60000 );
 			const seconds = Math.round( ( Ms - minutes * 60000 ) / 1000 );
+			return minutes + 'm' + String( seconds ).padStart( 2, '0' ) + 's';
+		};
+	} )
+
+
+	//-----------------------------------------------------------------
+	// A running time in whole seconds: 4s, 1m05s.
+	//-----------------------------------------------------------------
+	.filter( 'elapsed', function ()
+	{
+		return function ( Ms )
+		{
+			if ( typeof Ms !== 'number' || Ms < 0 )
+			{
+				return '';
+			}
+			const total = Math.floor( Ms / 1000 );
+			if ( total < 60 )
+			{
+				return total + 's';
+			}
+			const minutes = Math.floor( total / 60 );
+			const seconds = total - minutes * 60;
 			return minutes + 'm' + String( seconds ).padStart( 2, '0' ) + 's';
 		};
 	} )

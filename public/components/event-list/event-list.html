@@ -24,7 +24,7 @@
 					<span class="turn-text text-truncate flex-grow-1" title="{{ node.text }}">{{ node.line }}</span>
 					<span ng-if="node.agent" class="badge text-bg-info ms-2">agent {{ node.agent | shortId }}</span>
 					<span class="small dim ms-3 text-nowrap">{{ node.counts.calls }} calls<span ng-if="node.counts.denied"> · {{ node.counts.denied }} denied</span><span ng-if="node.counts.failed"> · {{ node.counts.failed }} failed</span></span>
-					<span class="mono small dim ms-3 col-duration text-end">{{ node.duration | duration }}</span>
+					<span class="mono small dim ms-3 col-duration text-end">{{ $ctrl.TurnDuration( node ) }}</span>
 					<span class="outcome col-outcome ms-2 outcome-{{ $ctrl.Reason( node ) }}">{{ $ctrl.Reason( node ) }}</span>
 					<button type="button" class="btn btn-sm btn-link json-button ms-1" ng-if="node.prompt || node.event" ng-click="$event.stopPropagation(); $ctrl.Show( node.key )" title="The user message as JSON">{{ '{' }}}</button>
 				</div>
@@ -37,7 +37,7 @@
 					<div ng-repeat="row in $ctrl.Rows( node ) track by row.key" class="row-line" ng-class="$ctrl.RowClass( row )">
 						<div class="row-head d-flex align-items-center px-3 py-1" ng-click="$ctrl.Show( row.key )">
 							<span class="mono col-time">{{ row.time | clock }}</span>
-							<span class="mono col-duration text-end">{{ row.call.duration | duration }}</span>
+							<span class="mono col-duration text-end">{{ $ctrl.CallDuration( row ) }}</span>
 							<span class="col-tool">
 								<span ng-if="row.kind === 'call'" class="badge text-bg-light border">{{ row.call.tool }}</span>
 								<span ng-if="row.kind === 'text'" class="small dim">assistant</span>

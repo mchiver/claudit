@@ -5,7 +5,8 @@
 // Bindings: none. Reads: State. Listens: 'claudit:select' (a session
 // id) from the session list, and selects that session;
 // 'claudit:collapse' (a boolean) from the session list, and hides or
-// shows it. The splitter's drag sets the list's width through State:
+// shows it; 'claudit:matches' ({ matched, total } or null) from the
+// event list, and passes it to State for the title bar's count. The splitter's drag sets the list's width through State:
 // mouse down on the handle, move on the window, up ends it.
 //=====================================================================
 
@@ -36,6 +37,10 @@
 			$scope.$on( 'claudit:collapse', function ( Event, Hidden )
 			{
 				State.SetSessionsHidden( Hidden );
+			} );
+			$scope.$on( 'claudit:matches', function ( Event, Matches )
+			{
+				State.SetMatches( Matches );
 			} );
 		};
 
