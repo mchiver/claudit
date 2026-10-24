@@ -69,7 +69,7 @@
 	<p>While Claude works, the status line shows the tool in flight, how long it has run and what it is doing, with the count of calls so far this turn. Open <a href="http://127.0.0.1:3600">http://127.0.0.1:3600</a> in a browser once a session has started the server, and the same session is there as it happens.</p>
 
 	<h3>Reading a turn</h3>
-	<p>A turn is one of your messages. It opens into the assistant's messages and the tool calls in order, each row with its time, the tool, a one-line summary, how long it took and how it ended: done, denied or failed. In a live session the latest turn stays open until the next one starts; a turn you open or close by hand keeps that choice.</p>
+	<p>A turn is one of your messages. It opens into the assistant's messages and the tool calls in order, each row with its time, the tool, a one-line summary, how long it took and how it ended: done, denied or failed. While a turn or a call is still running, its duration counts up in whole seconds until the exact figure arrives. In a live session the latest turn stays open until the next one starts; a turn you open or close by hand keeps that choice.</p>
 	<p>A call opens into its input, one field per line with a command or a file's content shown as it is, and its result rendered as markdown. An error result is tinted red. An assistant message opens into its text rendered the same way.</p>
 
 	<figure>
@@ -105,6 +105,14 @@
 	<figure>
 		<img src="images/dark.jpg" alt="The same page in the Dark palette.">
 		<figcaption>The Dark palette. Five light and five dark palettes are built in.</figcaption>
+	</figure>
+
+	<h3>Finding a turn</h3>
+	<p>The search box in the title bar filters the turns of the session on screen as you type. A turn stays when the text appears, ignoring case, in your message, in the assistant's text, or in a tool call's name or summary line; tool inputs and results are not searched. A count beside the box says how many turns match. The <code>×</code> or Escape clears it, and the text carries over when you pick another session.</p>
+
+	<figure>
+		<img src="images/search.jpg" alt="The search box in the title bar holding a word, the count of matching turns beside it, and only the matching turns listed.">
+		<figcaption>A search: only the turns holding the word are listed, with the count beside the box.</figcaption>
 	</figure>
 
 	<h3>Earlier sessions</h3>
