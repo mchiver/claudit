@@ -13,7 +13,7 @@ A Claude Code plugin that exposes the audit trail of a session: every turn, ever
 Everything stays on your machine. The mod talks only to its own server, on 127.0.0.1.
 
 - **The program it runs.** One program: `node <plugin folder>/server/launch.js --port <port>`, and only when nothing answers at `http://127.0.0.1:<port>/api/health`. The launcher starts the Claudit server (`server/server.js`) detached, so it outlives the session, and exits at once. The path is built from the plugin's install folder, which is why it is not fixed text. The mod runs nothing else, and never runs a command, tool or agent it sees in the conversation.
-- **The addresses it calls.** Two, both on `http://127.0.0.1:<port>` (3600 unless `port` is configured): `GET /api/health`, to see whether the server is up, and `POST /api/events`, to hand it each event. It is plain http because the server is local and has no certificate; the port comes from configuration, which is why the address is not fixed text. The mod calls no other host.
+- **The addresses it calls.** Two, both on `http://127.0.0.1:<port>` (41713 unless `port` is configured): `GET /api/health`, to see whether the server is up, and `POST /api/events`, to hand it each event. It is plain http because the server is local and has no certificate; the port comes from configuration, which is why the address is not fixed text. The mod calls no other host.
 - **What it sends.** The events listed under API below: the session's start and end and its working folder; each turn's start (your prompt's text) and end (its reason, time and token usage); each tool call's tool name, a one-line summary of its input, its timing and its outcome; and, unless `messages` is false, each row the conversation keeps (your prompts, the assistant's responses and thinking, tool results, the engine's rows), cut to `message_limit`. The server writes them to the archive folder and streams them to the web page; it sends nothing anywhere else.
 - **What the hooks do with what they see.** `tool.call` records the call and shows it on the status line while it runs; it neither changes, blocks nor delays the call beyond posting the event. `session.append` records the row after the conversation has stored it, unchanged. `session.start`, `turn.start`, `turn.complete` and `session.end` record the marks above. `command.run` answers `/claudit` only.
 - **What it reads.** `~/.claudit/config.json` and the plugin's own `.claude-plugin/plugin.json` (for its version); `HOME` or `USERPROFILE` to find your home folder.
@@ -56,7 +56,7 @@ In the session:
 /claudit on           record again
 ```
 
-It is on by default. Open the web page at http://127.0.0.1:3600 once a session has started it, or start the server by hand, in the `plugin` folder:
+It is on by default. Open the web page at http://127.0.0.1:41713 once a session has started it, or start the server by hand, in the `plugin` folder:
 
 ```
 npm start
@@ -68,7 +68,7 @@ npm start
 
 ```json
 {
-	"port": 3600,
+	"port": 41713,
 	"archive_folder": "~/.claudit/archive",
 	"retention_days": 30,
 	"live_minutes": 30,

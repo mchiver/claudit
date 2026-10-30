@@ -11,7 +11,7 @@
 		"port": {
 			"title": "Server port",
 			"type": "number",
-			"description": "The Claudit server's port. 0 takes the port from ~/.claudit/config.json (3600 when that says nothing).",
+			"description": "The Claudit server's port. 0 takes the port from ~/.claudit/config.json (41713 when that says nothing).",
 			"default": 0
 		}
 	}

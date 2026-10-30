@@ -20,7 +20,7 @@
 import { Summarise, OutcomeOf, FormatStatus, ParseCommand, CutToFit } from './format.js';
 
 
-const DEFAULT_PORT = 3600;
+const DEFAULT_PORT = 41713;
 const DEFAULT_MESSAGE_LIMIT = 65536;
 const HEALTH_TRIES = 20;
 const HEALTH_WAIT_MS = 250;

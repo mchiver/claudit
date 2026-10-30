@@ -12,7 +12,7 @@ import path from 'node:path';
 
 
 export const DEFAULTS = {
-	port: 3600,
+	port: 41713,
 	host: '127.0.0.1',
 	archive_folder: '~/.claudit/archive',
 	retention_days: 30,

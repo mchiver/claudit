@@ -44,11 +44,11 @@
 		</div>
 		<div class="part">
 			<h3>The server</h3>
-			<p>A separate Node process with no dependencies, listening on <code>127.0.0.1:3600</code>. It receives the events, streams them to the page as they arrive, writes the archive, prunes it after a retention period, and serves the page. The mod starts it when nothing answers on the port, detached, so it outlives the session.</p>
+			<p>A separate Node process with no dependencies, listening on <code>127.0.0.1:41713</code>. It receives the events, streams them to the page as they arrive, writes the archive, prunes it after a retention period, and serves the page. The mod starts it when nothing answers on the port, detached, so it outlives the session.</p>
 		</div>
 		<div class="part">
 			<h3>The page</h3>
-			<p>A web page at <code>http://127.0.0.1:3600</code>. Sessions down the left, live on top and archived below; the selected session on the right as a tree of turns. A turn opens into the assistant's messages and the tool calls in order; a call opens into its input and its result.</p>
+			<p>A web page at <code>http://127.0.0.1:41713</code>. Sessions down the left, live on top and archived below; the selected session on the right as a tree of turns. A turn opens into the assistant's messages and the tool calls in order; a call opens into its input and its result.</p>
 		</div>
 	</div>
 
@@ -66,7 +66,7 @@
 	<pre><code>/claudit status       whether it is on, its version, the server's address and version, the counts
 /claudit off          stop recording (kept across sessions)
 /claudit on           record again</code></pre>
-	<p>While Claude works, the status line shows the tool in flight, how long it has run and what it is doing, with the count of calls so far this turn. Open <a href="http://127.0.0.1:3600">http://127.0.0.1:3600</a> in a browser once a session has started the server, and the same session is there as it happens.</p>
+	<p>While Claude works, the status line shows the tool in flight, how long it has run and what it is doing, with the count of calls so far this turn. Open <a href="http://127.0.0.1:41713">http://127.0.0.1:41713</a> in a browser once a session has started the server, and the same session is there as it happens.</p>
 
 	<h3>Reading a turn</h3>
 	<p>A turn is one of your messages. It opens into the assistant's messages and the tool calls in order, each row with its time, the tool, a one-line summary, how long it took and how it ended: done, denied or failed. While a turn or a call is still running, its duration counts up in whole seconds until the exact figure arrives. In a live session the latest turn stays open until the next one starts; a turn you open or close by hand keeps that choice.</p>
@@ -126,7 +126,7 @@
 	<h2>Configuration</h2>
 	<p><code>~/.claudit/config.json</code>, every key optional:</p>
 	<pre><code>{
-	"port": 3600,
+	"port": 41713,
 	"archive_folder": "~/.claudit/archive",
 	"retention_days": 30,
 	"live_minutes": 30,
