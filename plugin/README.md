@@ -70,7 +70,7 @@ npm start
 {
 	"port": 41713,
 	"archive_folder": "~/.claudit/archive",
-	"retention_days": 30,
+	"retention_days": 29,
 	"live_minutes": 30,
 	"messages": true,
 	"message_limit": 65536

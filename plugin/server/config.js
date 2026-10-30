@@ -15,7 +15,7 @@ export const DEFAULTS = {
 	port: 41713,
 	host: '127.0.0.1',
 	archive_folder: '~/.claudit/archive',
-	retention_days: 30,
+	retention_days: 29,
 	live_minutes: 30,
 	log_file: '~/.claudit/server.log',
 };

@@ -44,7 +44,7 @@
 	<h2>Where it goes, and where it does not</h2>
 	<ul>
 		<li>The plugin posts each event over HTTP to a server that Claudit itself runs on your computer. The server listens on the loopback address <code>127.0.0.1</code> only, so it is reachable from your computer and from nowhere else.</li>
-		<li>The server writes the events to an archive folder under your home folder, <code>~/.claudit/archive</code> unless you configure another, as plain files, one folder per day. It removes day folders older than the retention period, 30 days unless you configure otherwise.</li>
+		<li>The server writes the events to an archive folder under your home folder, <code>~/.claudit/archive</code> unless you configure another, as plain files, one folder per day. It removes day folders older than the retention period, 29 days unless you configure otherwise.</li>
 		<li>The web page reads from that server, on your computer, in your browser.</li>
 		<li>Nothing is transmitted to mchiver, to Anthropic through Claudit, or to any other party. Claudit makes no network connection except to its own server on loopback.</li>
 	</ul>
