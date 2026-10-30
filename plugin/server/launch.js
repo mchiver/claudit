@@ -17,7 +17,7 @@ import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { LoadConfig, ParseArguments, ParseEnvironment } from './config.js';
+import { LoadConfig, ParseArguments, ParsePortVariable } from './config.js';
 
 
 const HERE = path.dirname( fileURLToPath( import.meta.url ) );
@@ -26,7 +26,7 @@ const SERVER = path.join( HERE, 'server.js' );
 
 function main()
 {
-	const from_environment = ParseEnvironment( process.env );
+	const from_environment = ParsePortVariable( process.env.CLAUDIT_PORT );
 	const from_arguments = ParseArguments( process.argv.slice( 2 ) );
 	const overrides = Object.assign( {}, from_environment, from_arguments );
 	const config = LoadConfig( overrides );

@@ -121,16 +121,16 @@ function clean( Overrides )
 
 
 //---------------------------------------------------------------------
-// Reads the port from CLAUDIT_PORT in an environment, which is how
-// the mod hands it to the launcher.
+// Reads the port from the value of CLAUDIT_PORT, which is how the mod
+// hands it to the launcher. Takes that one value, not the environment.
 //---------------------------------------------------------------------
 
-export function ParseEnvironment( Env )
+export function ParsePortVariable( Value )
 {
 	const result = {};
-	if ( Env && Env.CLAUDIT_PORT )
+	if ( Value )
 	{
-		result.port = Number( Env.CLAUDIT_PORT );
+		result.port = Number( Value );
 	}
 	return result;
 }
