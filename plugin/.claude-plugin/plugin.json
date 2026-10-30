@@ -1,7 +1,7 @@
 {
 	"name": "claudit",
-	"displayName": "Claudit by mchiver",
-	"version": "0.6.3",
+	"displayName": "Claudit",
+	"version": "0.6.4",
 	"description": "Exposes the audit trail of a Claude Code session: every tool call, timed, shown in the session, streamed to a local web page and archived.",
 	"author": {
 		"name": "mchiver"
