@@ -1,12 +1,17 @@
 {
 	"name": "claudit",
 	"displayName": "Claudit",
-	"version": "0.6.4",
+	"version": "0.6.5",
 	"description": "Exposes the audit trail of a Claude Code session: every tool call, timed, shown in the session, streamed to a local web page and archived.",
 	"author": {
 		"name": "mchiver"
 	},
 	"repository": "https://github.com/mchiver/claudit",
+	"homepage": "https://claudit.mchiver.com/",
+	"documentationUrl": "https://github.com/mchiver/claudit/blob/master/plugin/README.md",
+	"supportUrl": "https://github.com/mchiver/claudit/issues",
+	"privacyPolicyUrl": "https://claudit.mchiver.com/privacy.html",
+	"termsOfServiceUrl": "https://claudit.mchiver.com/terms.html",
 	"license": "MIT",
 	"userConfig": {
 		"port": {
