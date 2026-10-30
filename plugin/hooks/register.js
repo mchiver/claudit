@@ -130,7 +130,7 @@ export function register( on, options )
 			debug( $, 'record_row failed: ' + message_of( error ) );
 		}
 		return stored;
-	} );
+	} ).catch( pass_through );
 
 
 	//-----------------------------------------------------------------
@@ -161,7 +161,7 @@ export function register( on, options )
 		}
 		await finish_call( $, call, ran );
 		return ran;
-	} );
+	} ).catch( pass_through );
 
 
 	//-----------------------------------------------------------------
@@ -350,12 +350,27 @@ async function home_of( $ )
 
 
 //=====================================================================
+// The fallback for the hooks that hold Claude up (session.append,
+// tool.call): when one throws or overruns, the engine asks this. The
+// event goes on unchanged; next is replay-safe, so a row or a tool
+// call that already went through is not stored or run again.
+//=====================================================================
+
+function pass_through( $, e, next )
+{
+	return next( e );
+}
+
+
+//=====================================================================
 // The server
 //=====================================================================
 
 //---------------------------------------------------------------------
 // True when the server answers its health route; when it does not,
 // starts it detached (server/launch.js) and waits for it to answer.
+// The command is fixed text, run in the plugin's folder; the port
+// goes to the launcher in CLAUDIT_PORT.
 //---------------------------------------------------------------------
 
 async function ensure_server( $ )
@@ -366,8 +381,11 @@ async function ensure_server( $ )
 	}
 	try
 	{
-		const launcher = $.plugin.root.replace( /\\/g, '/' ) + '/server/launch.js';
-		const ran = await $.process.run( [ 'node', launcher, '--port', String( STATE.port ) ] );
+		const options = {
+			cwd: $.plugin.root,
+			env: { CLAUDIT_PORT: String( STATE.port ) },
+		};
+		const ran = await $.process.run( [ 'node', 'server/launch.js' ], options );
 		if ( ran.exitCode !== 0 )
 		{
 			debug( $, 'launch.js exited ' + ran.exitCode + ': ' + ran.stderr );

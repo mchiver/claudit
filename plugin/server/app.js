@@ -20,7 +20,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 
-const VERSION = '0.6.1';
+const VERSION = '0.6.2';
 const BODY_LIMIT = 8 * 1024 * 1024;
 const PUBLIC_FOLDER = path.join( path.dirname( fileURLToPath( import.meta.url ) ), '..', 'public' );
 
