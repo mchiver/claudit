@@ -1,6 +1,6 @@
 {
 	"name": "claudit",
-	"version": "0.6.0",
+	"version": "0.6.1",
 	"description": "A Claude Code plugin that exposes the audit trail of a session: every tool call, timed, streamed live and archived.",
 	"type": "module",
 	"main": "server/server.js",

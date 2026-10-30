@@ -7,7 +7,7 @@
 	"plugins": [
 		{
 			"name": "claudit",
-			"source": "./",
+			"source": "./plugin",
 			"description": "The audit trail of a Claude Code session: every turn, message and tool call, timed, shown in the session, streamed to a local web page and archived."
 		}
 	]
